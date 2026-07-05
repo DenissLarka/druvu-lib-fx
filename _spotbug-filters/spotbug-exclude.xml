@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+	<!-- project-wide SpotBugs exclusions; keep every entry justified with a comment -->
+
+	<!-- TaskEvent.Failed carries the actual task exception by design: subscribers need the real
+	     Throwable (cause chain, stack trace) for display and logging. Copying exceptions is not
+	     a sane alternative; Throwable's "mutability" (setStackTrace/addSuppressed) is irrelevant
+	     to an event payload. -->
+	<Match>
+		<Class name="com.druvu.lib.fx.exec.TaskEvent$Failed"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+
+	<!-- ThrowingRunnable and Authenticator mirror java.util.concurrent.Callable: 'throws Exception'
+	     IS the contract of a generic interface whose body is app-supplied (background work / an auth
+	     backend that may fail any which way). SpotBugs exempts Callable only because it is JDK code. -->
+	<Match>
+		<Or>
+			<Class name="com.druvu.lib.fx.exec.ThrowingRunnable"/>
+			<Class name="com.druvu.lib.fx.auth.Authenticator"/>
+		</Or>
+		<Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
+	</Match>
+
+	<!-- @FXML fields are injected and initialize()/handlers invoked reflectively by FXMLLoader;
+	     SpotBugs cannot see the writes/calls. -->
+	<Match>
+		<Class name="com.druvu.lib.fx.example.instruments.InstrumentsController"/>
+		<Bug pattern="UWF_UNWRITTEN_FIELD,NP_UNWRITTEN_FIELD,UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR,UPM_UNCALLED_PRIVATE_METHOD"/>
+	</Match>
+
+	<!-- The example module is UI composition: storing injected collaborators (bus/exec) and
+	     returning live scene-graph nodes IS the design. EI "rep exposure" is meaningless noise
+	     there. The kit module deliberately keeps these detectors active. -->
+	<Match>
+		<Package name="~com\.druvu\.lib\.fx\.example.*"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+
+	<!-- Vendored DockFX (MPL-2.0, com.druvu.lib.fx.dock). Same UI-composition reality as the
+	     example: dock accessors hand back live scene-graph nodes (borderPane, dockPane, title bar),
+	     and the controls build their own children in-constructor (getChildren() call) - the standard
+	     JavaFX control idiom, not the extensible-base-class shape MC_OVERRIDABLE guards against.
+	     These detectors are noise on vendored code; the rest of the kit keeps them active. We keep
+	     this narrow so genuine defects still surface - only the J25-necessary edits diverge from
+	     upstream. -->
+	<Match>
+		<Package name="~com\.druvu\.lib\.fx\.dock.*"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2,MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/>
+	</Match>
+</FindBugsFilter>

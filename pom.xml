@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.druvu</groupId>
+	<artifactId>druvu-lib-fx-parent</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+
+	<name>DRUVU.COM / LIB / FX</name>
+	<description>JavaFX application toolkit for druvu desktop apps: event bus, background execution, status bar, login, navigation, preferences, notifications</description>
+
+	<modules>
+		<module>druvu-lib-fx</module>
+		<module>druvu-lib-fx-example</module>
+	</modules>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>25</java.version>
+
+		<!-- JavaFX comes from the JDK: build with a JavaFX-bundled JDK (e.g. Azul Zulu FX).
+		     There are deliberately NO org.openjfx dependencies - apps ship their JDK via the
+		     druvu install pipeline, so the fx modules are version-locked to the JDK. -->
+
+		<lombok.version>1.18.46</lombok.version>
+		<slf4j.version>2.0.18</slf4j.version>
+		<testng.version>7.12.0</testng.version>
+		<assertj.version>3.27.7</assertj.version>
+
+		<!-- plugins -->
+		<maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+		<maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+		<maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
+		<maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+		<maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+		<maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+		<maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
+		<spotbugs-maven-plugin.version>4.10.2.0</spotbugs-maven-plugin.version>
+		<javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
+		<asm.version>9.10.1</asm.version>
+	</properties>
+
+	<developers>
+		<developer>
+			<name>Deniss LARKA</name>
+			<email>deniss.larka@gmail.com</email>
+		</developer>
+	</developers>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.druvu</groupId>
+				<artifactId>druvu-lib-fx</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>${slf4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-simple</artifactId>
+				<version>${slf4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>${lombok.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.testng</groupId>
+				<artifactId>testng</artifactId>
+				<version>${testng.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>org.slf4j</groupId>
+						<artifactId>slf4j-api</artifactId>
+					</exclusion>
+				</exclusions>
+			</dependency>
+			<dependency>
+				<groupId>org.assertj</groupId>
+				<artifactId>assertj-core</artifactId>
+				<version>${assertj.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<!-- javafx-maven-plugin: runner only, not a dependency source -->
+				<plugin>
+					<groupId>org.openjfx</groupId>
+					<artifactId>javafx-maven-plugin</artifactId>
+					<version>${javafx-maven-plugin.version}</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<plugins>
+			<!-- maven-compiler-plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven-compiler-plugin.version}</version>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<release>${java.version}</release>
+					<debug>true</debug>
+					<showDeprecation>true</showDeprecation>
+					<showWarnings>true</showWarnings>
+					<compilerArgs>
+						<arg>-parameters</arg>
+					</compilerArgs>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<!-- maven-source-plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>${maven-source-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<phase>package</phase>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- maven-surefire-plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>${maven-surefire-plugin.version}</version>
+				<configuration>
+					<!-- Run tests on classpath instead of module-path: simpler, and the
+					     JDK-bundled javafx system modules stay visible to unnamed-module code.
+					     module-info.java is still validated during compilation. -->
+					<useModulePath>false</useModulePath>
+				</configuration>
+			</plugin>
+			<!-- maven-javadoc-plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${maven-javadoc-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<phase>package</phase>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<show>public</show>
+					<source>${java.version}</source>
+					<doclint>none</doclint>
+				</configuration>
+			</plugin>
+			<!-- spotbugs-maven-plugin -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>${spotbugs-maven-plugin.version}</version>
+				<dependencies>
+					<!-- updated asm to support J25 -->
+					<dependency>
+						<groupId>org.ow2.asm</groupId>
+						<artifactId>asm</artifactId>
+						<version>${asm.version}</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<effort>Max</effort>
+					<threshold>Low</threshold>
+					<xmlOutput>true</xmlOutput>
+					<includeTests>false</includeTests>
+					<excludeFilterFile>${maven.multiModuleProjectDirectory}/_spotbug-filters/spotbug-exclude.xml</excludeFilterFile>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- maven-pmd-plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>${maven-pmd-plugin.version}</version>
+				<dependencies>
+					<!-- updated asm to support J25 -->
+					<dependency>
+						<groupId>org.ow2.asm</groupId>
+						<artifactId>asm</artifactId>
+						<version>${asm.version}</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<printFailingErrors>true</printFailingErrors>
+					<failurePriority>3</failurePriority>
+					<includeTests>true</includeTests>
+					<linkXRef>false</linkXRef>
+					<!-- Vendored DockFX (MPL-2.0). Style-only PMD rules (fully-qualified names,
+					     qualified this, collapsible ifs) are noise on third-party code; excluding it
+					     keeps the vendored sources byte-faithful to upstream for future re-sync.
+					     SpotBugs still scans it (narrow filter) so genuine defects surface. -->
+					<excludes>
+						<exclude>com/druvu/lib/fx/dock/*.java</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+							<goal>cpd-check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- maven-checkstyle-plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>${maven-checkstyle-plugin.version}</version>
+				<configuration>
+					<configLocation>google_checks.xml</configLocation>
+				</configuration>
+			</plugin>
+			<!-- maven-enforcer-plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>${maven-enforcer-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>enforce-versions</id>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<banDuplicatePomDependencyVersions/>
+								<!-- no reactorModuleConvergence: it fails every partial build
+								     (mvn -pl druvu-lib-fx-example javafx:run) because the parent
+								     is then outside the reactor -->
+								<dependencyConvergence/>
+								<requireJavaVersion>
+									<version>${java.version}</version>
+								</requireJavaVersion>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+	  fx:controller="com.druvu.lib.fx.example.instruments.InstrumentsController" spacing="8">
+	<padding>
+		<Insets top="8" right="8" bottom="8" left="8"/>
+	</padding>
+
+	<HBox spacing="8" alignment="CENTER_LEFT">
+		<TextField fx:id="searchField" promptText="Search symbol or name" prefWidth="180"/>
+		<ComboBox fx:id="classFilter" promptText="Asset class"/>
+		<DatePicker fx:id="listedAfter" promptText="Listed after" prefWidth="130"/>
+		<Label text="Min:"/>
+		<Spinner fx:id="minPrice" editable="true" prefWidth="90"/>
+		<Label text="Max:"/>
+		<Slider fx:id="maxPrice" min="0" max="2500" value="2500" prefWidth="140"/>
+		<Label fx:id="maxPriceLabel"/>
+		<CheckBox fx:id="favOnly" text="Favourites"/>
+		<Button text="Reset" onAction="#onReset"/>
+		<Button fx:id="reloadButton" text="Reload" onAction="#onReload"/>
+	</HBox>
+
+	<TableView fx:id="table" VBox.vgrow="ALWAYS">
+		<columns>
+			<TableColumn fx:id="favColumn" text="Fav" prefWidth="46"/>
+			<TableColumn fx:id="symbolColumn" text="Symbol" prefWidth="90"/>
+			<TableColumn fx:id="nameColumn" text="Name" prefWidth="230"/>
+			<TableColumn fx:id="classColumn" text="Class" prefWidth="90"/>
+			<TableColumn fx:id="priceColumn" text="Price" prefWidth="90"/>
+			<TableColumn fx:id="listedColumn" text="Listed" prefWidth="110"/>
+		</columns>
+	</TableView>
+</VBox>
