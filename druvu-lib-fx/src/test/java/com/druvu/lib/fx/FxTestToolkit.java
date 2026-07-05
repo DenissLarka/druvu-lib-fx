@@ -23,6 +23,10 @@ public final class FxTestToolkit {
 		} catch (IllegalStateException alreadyRunning) {
 			STARTED.countDown();
 		}
+		// A test that shows then hides a Stage would otherwise drop the window count to zero and
+		// trigger implicit Platform.exit(), killing this un-restartable toolkit for the whole JVM
+		// and hanging every later FX test. Keep the toolkit alive regardless of window count.
+		Platform.setImplicitExit(false);
 		try {
 			if (!STARTED.await(10, TimeUnit.SECONDS)) {
 				throw new IllegalStateException("JavaFX toolkit did not start within 10s");

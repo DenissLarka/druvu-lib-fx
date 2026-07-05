@@ -106,8 +106,9 @@ public final class Prefs {
 
 	private void save() {
 		try {
-			if (file.getParent() != null) {
-				Files.createDirectories(file.getParent());
+			final Path parent = file.getParent();
+			if (parent != null) {
+				Files.createDirectories(parent);
 			}
 			try (var writer = Files.newBufferedWriter(file)) {
 				properties.store(writer, "druvu-lib-fx preferences");

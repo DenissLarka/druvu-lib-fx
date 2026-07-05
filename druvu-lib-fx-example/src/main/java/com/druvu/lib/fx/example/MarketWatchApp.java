@@ -20,6 +20,10 @@ import com.druvu.lib.fx.example.pages.DashboardPage;
 import com.druvu.lib.fx.example.pages.TasksPage;
 import com.druvu.lib.fx.exec.FxExec;
 import com.druvu.lib.fx.exec.TaskEvent;
+import com.druvu.lib.fx.notify.Notifications;
+import com.druvu.lib.fx.prefs.AppHome;
+import com.druvu.lib.fx.prefs.Prefs;
+import com.druvu.lib.fx.prefs.WindowGeometry;
 import com.druvu.lib.fx.status.StatusBarModel;
 import com.druvu.lib.fx.util.FxThreads;
 
@@ -68,8 +72,11 @@ public final class MarketWatchApp extends Application {
 	private final List<Subscription> shellSubscriptions = new ArrayList<>();
 	private final List<Panel> panels = new ArrayList<>();
 
+	private final Prefs prefs = Prefs.in(AppHome.of("market-watch"));
+
 	private DockPane dockPane;
 	private StatusBarModel statusBarModel;
+	private Notifications notifications;
 
 	public static void main(String[] args) {
 		launch(args);
@@ -78,16 +85,23 @@ public final class MarketWatchApp extends Application {
 	@Override
 	public void start(Stage stage) {
 		FxThreads.requireFx();
+		notifications = new Notifications(stage);
+
 		final Scene scene = new Scene(new BorderPane(), 1280, 800);
 		scene.setRoot(buildLoginPane(scene));
 		stage.setTitle("Market Watch - druvu-lib-fx showcase");
 		stage.setScene(scene);
+		// Restore the window's saved position/size (and save it again when the app closes).
+		WindowGeometry.install(stage, prefs);
 		stage.show();
 	}
 
 	@Override
 	public void stop() {
 		feed.stop();
+		if (notifications != null) {
+			notifications.close();
+		}
 		if (statusBarModel != null) {
 			statusBarModel.close();
 		}
@@ -120,6 +134,14 @@ public final class MarketWatchApp extends Application {
 		shell.setTop(buildToolbar());
 		shell.setBottom(buildStatusStrip(user));
 		scene.setRoot(shell);
+
+		// Surface failed background tasks as error toasts (try the Tasks page's "Failing task").
+		shellSubscriptions.add(bus.subscribe(TaskEvent.class, Delivery.FX, event -> {
+			if (event instanceof TaskEvent.Failed failed) {
+				notifications.error(failed.title() + " failed: " + failed.error().getMessage());
+			}
+		}));
+		notifications.success("Signed in as " + user);
 	}
 
 	/**
@@ -133,10 +155,10 @@ public final class MarketWatchApp extends Application {
 				MarketWatchApp::dashboardIcon));
 		panels.add(new Panel("Instruments", loadInstrumentsPage(), DockPos.RIGHT,
 				MarketWatchApp::instrumentsIcon));
-		panels.add(new Panel("Tasks", new TasksPage(bus, exec).node(), DockPos.BOTTOM,
+		panels.add(new Panel("Tasks", new TasksPage(bus, exec, notifications).node(), DockPos.BOTTOM,
 				MarketWatchApp::tasksIcon));
 
-		// Dashboard is docked FIRST so CENTER is valid; the rest go to their sides.
+		// Dashboard is docked FIRST, so CENTER is valid; the rest go to their sides.
 		panels.get(0).node.dock(dockPane, DockPos.CENTER);
 		for (int i = 1; i < panels.size(); i++) {
 			final Panel panel = panels.get(i);
@@ -193,7 +215,7 @@ public final class MarketWatchApp extends Application {
 		toggle.setOnAction(e -> {
 			if (toggle.isSelected()) {
 				if (!panel.node.isDocked()) {
-					// If it was dragged out to float, dispose that window first so we re-dock the
+					// If it was dragged out to float, dispose that window first, so we re-dock the
 					// node cleanly instead of leaving an empty floating stage.
 					if (panel.node.isFloating()) {
 						panel.node.close();

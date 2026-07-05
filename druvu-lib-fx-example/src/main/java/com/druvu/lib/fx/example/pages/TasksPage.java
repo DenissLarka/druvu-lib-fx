@@ -7,6 +7,7 @@ import com.druvu.lib.fx.bus.Delivery;
 import com.druvu.lib.fx.bus.FxBus;
 import com.druvu.lib.fx.exec.FxExec;
 import com.druvu.lib.fx.exec.TaskEvent;
+import com.druvu.lib.fx.notify.Notifications;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -32,7 +33,7 @@ public final class TasksPage {
 	private final ObservableList<String> log = FXCollections.observableArrayList();
 	private final Node node;
 
-	public TasksPage(FxBus bus, FxExec exec) {
+	public TasksPage(FxBus bus, FxExec exec, Notifications notifications) {
 		final Button quick = new Button("Quick task (0.5 s)");
 		quick.setOnAction(e -> exec.run("quick task", () -> Thread.sleep(500)));
 
@@ -48,10 +49,23 @@ public final class TasksPage {
 		final HBox buttons = new HBox(8, quick, slow, failing, new Label("- fire several in parallel"));
 		buttons.setPadding(new Insets(8));
 
+		// One button per toast level, so all four Notifications colours can be seen on demand.
+		final Button info = new Button("Info");
+		info.setOnAction(e -> notifications.info("Market data refreshed."));
+		final Button success = new Button("Success");
+		success.setOnAction(e -> notifications.success("Trade booked successfully."));
+		final Button warning = new Button("Warning");
+		warning.setOnAction(e -> notifications.warning("Latency above threshold."));
+		final Button error = new Button("Error");
+		error.setOnAction(e -> notifications.error("Connection to the market feed was lost."));
+
+		final HBox toasts = new HBox(8, new Label("Toasts:"), info, success, warning, error);
+		toasts.setPadding(new Insets(0, 8, 8, 8));
+
 		final ListView<String> logView = new ListView<>(log);
 		VBox.setVgrow(logView, Priority.ALWAYS);
 
-		final VBox box = new VBox(buttons, logView);
+		final VBox box = new VBox(buttons, toasts, logView);
 		this.node = box;
 
 		// page lives as long as the app: subscription intentionally not closed
