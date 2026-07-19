@@ -5,7 +5,7 @@
 
 	<groupId>com.druvu</groupId>
 	<artifactId>druvu-lib-fx-parent</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>pom</packaging>
 
 	<name>DRUVU.COM / LIB / FX</name>
@@ -39,6 +39,8 @@
 		<maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
 		<spotbugs-maven-plugin.version>4.10.3.0</spotbugs-maven-plugin.version>
 		<javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
+		<spotless-maven-plugin.version>3.8.0</spotless-maven-plugin.version>
+		<palantir-java-format.version>2.90.0</palantir-java-format.version>
 		<asm.version>9.10.1</asm.version>
 	</properties>
 
@@ -48,6 +50,29 @@
 			<email>deniss.larka@gmail.com</email>
 		</developer>
 	</developers>
+
+	<licenses>
+		<license>
+			<name>Apache License, Version 2.0</name>
+			<url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<scm>
+		<connection>scm:git:https://github.com/DenissLarka/druvu-lib-fx.git</connection>
+		<developerConnection>scm:git:git@github.com:DenissLarka/druvu-lib-fx.git</developerConnection>
+		<url>https://github.com/DenissLarka/druvu-lib-fx</url>
+		<tag>HEAD</tag>
+	</scm>
+
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<name>GitHub Packages</name>
+			<url>https://maven.pkg.github.com/DenissLarka/druvu-lib-fx/</url>
+		</repository>
+	</distributionManagement>
 
 	<dependencyManagement>
 		<dependencies>
@@ -268,6 +293,36 @@
 								</requireJavaVersion>
 							</rules>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- spotless: house code formatter (same config as jconsole-booster / druvu-lib-jmxmp).
+			     `mvn spotless:apply` reformats; `check` runs in verify and fails on unformatted code.
+			     The vendored dock package is excluded to keep those sources byte-faithful to upstream
+			     for re-sync (it is likewise excluded from PMD). -->
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>${spotless-maven-plugin.version}</version>
+				<configuration>
+					<java>
+						<excludes>
+							<exclude>src/main/java/com/druvu/lib/fx/dock/**/*.java</exclude>
+						</excludes>
+						<palantirJavaFormat>
+							<version>${palantir-java-format.version}</version>
+							<style>PALANTIR</style>
+							<formatJavadoc>true</formatJavadoc>
+						</palantirJavaFormat>
+						<removeUnusedImports/>
+					</java>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<phase>verify</phase>
 					</execution>
 				</executions>
 			</plugin>

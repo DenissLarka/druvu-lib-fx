@@ -2,13 +2,19 @@
 
 This product bundles third-party source and assets. Their licenses and provenance are recorded here.
 
+**Licensing summary:** druvu-lib-fx is licensed under the **Apache License 2.0** (see `LICENSE`), *except* the
+vendored `com.druvu.lib.fx.dock` package and its resources under `com/druvu/lib/fx/dock/`, which are under the
+**Mozilla Public License 2.0** (see `licenses/MPL-2.0.txt`). Both license texts are bundled in the published
+jar under `META-INF/`.
+
 ## DockFX (docking layout) — Mozilla Public License 2.0
 
 The package `com.druvu.lib.fx.dock` in the `druvu-lib-fx` module is vendored (copied in, not
 depended on) from **DockFX** by Robert B. Colton — <https://github.com/RobertBColton/DockFX>.
 
 - **License:** Mozilla Public License, v. 2.0 (MPL-2.0). Upstream relicensed to MPL-2.0 in 2020;
-  every vendored `.java` file carries the MPL-2.0 per-file header. A copy of the MPL is at
+  every vendored `.java` file carries the MPL-2.0 per-file header. The full MPL-2.0 text is in
+  `licenses/MPL-2.0.txt` (bundled in the jar at `META-INF/licenses/MPL-2.0.txt`); also at
   <https://mozilla.org/MPL/2.0/>.
 - **Why vendored, not a dependency:** upstream is dead (no releases in years) and ships no
   `module-info`, so as a jar it resolves as an *automatic module* — which `jlink` refuses. Copying
@@ -39,4 +45,5 @@ Bundled at `com/druvu/lib/fx/dock/` in `druvu-lib-fx`:
   upstream by the commit *"Cleanup Fix line endings and switch to free icons."* (2015-08-23),
   i.e. redistributable "free icons". `demo/docknode.png` is intentionally excluded.
 
-If druvu-lib-fx is ever open-sourced, re-confirm the free-icon provenance before redistribution.
+These dock-indicator icons are redistributed as part of the vendored MPL-2.0 DockFX sources; the demo-only
+`demo/docknode.png` is intentionally excluded.

@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>com.druvu</groupId>
 		<artifactId>druvu-lib-fx-parent</artifactId>
-		<version>1.0.0-SNAPSHOT</version>
+		<version>1.0.0</version>
 	</parent>
 
 	<artifactId>druvu-lib-fx</artifactId>
@@ -54,5 +54,25 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<build>
+		<resources>
+			<!-- normal resources (dock css + png indicators) -->
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<!-- Bundle the licenses into the jar's META-INF. The jar carries vendored MPL-2.0 code
+			     (com.druvu.lib.fx.dock), so the MPL-2.0 text must travel with the binary distribution. -->
+			<resource>
+				<directory>${maven.multiModuleProjectDirectory}</directory>
+				<targetPath>META-INF</targetPath>
+				<includes>
+					<include>LICENSE</include>
+					<include>NOTICE.md</include>
+					<include>licenses/MPL-2.0.txt</include>
+				</includes>
+			</resource>
+		</resources>
+	</build>
 
 </project>
