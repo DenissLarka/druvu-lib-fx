@@ -1,5 +1,9 @@
 # druvu-lib-fx
 
+[![Maven GitHub Publish](https://github.com/DenissLarka/druvu-lib-fx/actions/workflows/maven-github-publish.yml/badge.svg)](https://github.com/DenissLarka/druvu-lib-fx/actions/workflows/maven-github-publish.yml)
+![Java](https://img.shields.io/badge/Java-25%20(FX)-blue)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 JavaFX application toolkit for [druvu](https://druvu.com) desktop apps — **a library, not a
 framework**: the app owns `Application`, `Stage`, `Scene` and its layout; every toolkit capability
 is opt-in. Nothing here requires implementing a toolkit interface to start an app.
