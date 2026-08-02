@@ -43,18 +43,31 @@ public final class StatusBarModel implements AutoCloseable {
                 message.set("running: " + s.title());
             }
             case TaskEvent.Finished f -> {
-                runningTasks.set(runningTasks.get() - 1);
+                decrement();
                 message.set("done: " + f.title());
             }
             case TaskEvent.Failed x -> {
-                runningTasks.set(runningTasks.get() - 1);
+                decrement();
                 message.set("failed: " + x.title());
             }
         }
         busy.set(runningTasks.get() > 0);
     }
 
-    /** @return number of tasks currently running (never negative under normal use). */
+    /**
+     * Ends one task, floored at zero.
+     *
+     * <p>A model constructed while tasks are already in flight sees their {@code Finished} without ever having seen the
+     * matching {@code Started}, and a naive decrement drives the count negative - the status bar then reads "tasks: -1"
+     * for the rest of the session, because nothing ever brings it back up. That is not an exotic case: any app that
+     * builds its status bar after kicking off a startup load hits it. A count of running tasks has no meaningful
+     * negative value, so the floor is the invariant, not a patch over one.
+     */
+    private void decrement() {
+        runningTasks.set(Math.max(0, runningTasks.get() - 1));
+    }
+
+    /** @return number of tasks currently running; never negative, even if the model was built mid-flight. */
     public ReadOnlyIntegerProperty runningTasksProperty() {
         return runningTasks.getReadOnlyProperty();
     }

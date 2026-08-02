@@ -15,6 +15,7 @@ import com.druvu.lib.fx.example.pages.TasksPage;
 import com.druvu.lib.fx.exec.FxExec;
 import com.druvu.lib.fx.exec.TaskEvent;
 import com.druvu.lib.fx.notify.Notifications;
+import com.druvu.lib.fx.os.DesktopHooks;
 import com.druvu.lib.fx.prefs.AppHome;
 import com.druvu.lib.fx.prefs.Prefs;
 import com.druvu.lib.fx.prefs.WindowGeometry;
@@ -26,8 +27,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -37,12 +41,16 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
@@ -79,8 +87,34 @@ public final class MarketWatchApp extends Application {
     private StatusBarModel statusBarModel;
     private Notifications notifications;
 
+    // Filled in by start(); the desktop hooks are registered before any instance exists (see main).
+    private static final AtomicReference<MarketWatchApp> RUNNING = new AtomicReference<>();
+
     public static void main(String[] args) {
+        // BEFORE launch() on purpose. On macOS the application menu goes to whoever builds it first: register here and
+        // AWT installs About/Settings into it; register in start() and Glass has already built a bare Hide/Quit menu,
+        // after which the entries never appear even though registration "succeeded". See DesktopHooks.
+        DesktopHooks.onAbout(() -> onRunningApp(MarketWatchApp::showAbout));
+        DesktopHooks.onPreferences(
+                () -> onRunningApp(app -> app.notifications.info("Preferences: the theme picker is in the toolbar.")));
+        DesktopHooks.onOpenFiles(paths -> onRunningApp(app ->
+                app.notifications.info("Asked to open " + paths.getFirst().getFileName())));
+        // Returning false here would cancel the quit - where an app with unsaved work puts its prompt.
+        DesktopHooks.onQuit(() -> true);
+
         launch(args);
+    }
+
+    /** Runs an action against the started app, or drops it if the UI is not up yet. */
+    private static void onRunningApp(Consumer<MarketWatchApp> action) {
+        final MarketWatchApp app = RUNNING.get();
+        if (app != null && app.notifications != null) {
+            action.accept(app);
+        }
+    }
+
+    private void showAbout() {
+        notifications.info("Market Watch - the druvu-lib-fx showcase.");
     }
 
     @Override
@@ -96,9 +130,33 @@ public final class MarketWatchApp extends Application {
         scene.setRoot(buildLoginPane(scene));
         stage.setTitle("Market Watch - druvu-lib-fx showcase");
         stage.setScene(scene);
+        // The desktop hooks were registered in main(); hand them a live app to talk to.
+        RUNNING.set(this);
+
         // Restore the window's saved position/size (and save it again when the app closes).
         WindowGeometry.install(stage, prefs);
         stage.show();
+    }
+
+    /**
+     * Menus in the OS menu bar. {@code setUseSystemMenuBar(true)} is the whole trick on macOS and a harmless no-op
+     * elsewhere, where the bar simply stays inside the window - so there is no platform branch to write, only the
+     * question of where About belongs.
+     */
+    private MenuBar buildMenuBar() {
+        final MenuItem quit = new MenuItem("Quit");
+        quit.setOnAction(event -> Platform.exit());
+        final Menu file = new Menu("File", null, quit);
+
+        // About goes in Help on every platform: AWT's application-menu About does not surface in a JavaFX app, so this
+        // is the only place it is actually reachable. See DesktopHooks' known-limitation note.
+        final MenuItem about = new MenuItem("About Market Watch");
+        about.setOnAction(event -> showAbout());
+        final Menu help = new Menu("Help", null, about);
+
+        final MenuBar menuBar = new MenuBar(file, help);
+        menuBar.setUseSystemMenuBar(true);
+        return menuBar;
     }
 
     @Override
@@ -132,11 +190,18 @@ public final class MarketWatchApp extends Application {
 
     /** Builds the docking workspace and swaps it in as the scene root once the user has signed in. */
     private void showWorkspace(Scene scene, String user) {
+        // Before buildDockLayout(), which starts the instruments load: a model built afterwards would miss that
+        // task's Started and still see its Finished. The kit floors the count at zero either way, but the honest
+        // fix is to be listening before anything can fire - otherwise the strip just under-reports.
+        statusBarModel = new StatusBarModel(bus);
+
         dockPane = new DockPane();
         buildDockLayout();
 
         final BorderPane shell = new BorderPane(dockPane);
-        shell.setTop(buildToolbar());
+        // The menu bar must be in the scene graph for macOS to adopt it into the screen menu bar; on other platforms
+        // this VBox is what shows it above the toolbar.
+        shell.setTop(new VBox(buildMenuBar(), buildToolbar()));
         shell.setBottom(buildStatusStrip(user));
         scene.setRoot(shell);
 
@@ -318,8 +383,6 @@ public final class MarketWatchApp extends Application {
      * used to live here is now the model's job; the view just binds.
      */
     private HBox buildStatusStrip(String user) {
-        statusBarModel = new StatusBarModel(bus);
-
         final Label userLabel = new Label("signed in: " + user);
         final Label tasksLabel = new Label();
         tasksLabel.textProperty().bind(statusBarModel.runningTasksProperty().asString("tasks: %d"));

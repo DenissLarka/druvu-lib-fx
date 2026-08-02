@@ -20,7 +20,9 @@
  ******************************************************************************/
 
 .dock-area-indicator {
-  -fx-fill: -fx-selection-bar;
+  /* DIVERGENCE (see NOTICE.md): upstream -fx-selection-bar is Modena-only, so the drop-target
+   * preview had no fill at all under an FxTheme - the drag feedback was invisible. */
+  -fx-fill: -color-accent-emphasis;
   -fx-opacity: 0.5;
   -fx-stroke: rgba(50, 50, 100, 0.4);
   -fx-stroke-width: 6;
@@ -115,9 +117,11 @@
  * because some panes used as content such as TabPane with empty
  * tabs will be fully transparent.
  */
-/* DIVERGENCE FROM UPSTREAM DockFX (see NOTICE.md): upstream looked up -fx-background and
- * -fx-outer-border, which only Modena defines - under an FxTheme those lookups fail and the dock
- * chrome renders unstyled. Swapped for the AtlantaFX equivalents that every FxTheme defines.
+/* DIVERGENCE FROM UPSTREAM DockFX (see NOTICE.md): upstream looked up -fx-background,
+ * -fx-outer-border and -fx-text-base-color, which only Modena defines - under an FxTheme those
+ * lookups fail and the dock chrome renders unstyled. Swapped for the AtlantaFX equivalents that
+ * every FxTheme defines. A failed lookup does NOT fall back to an earlier declaration: JavaFX logs
+ * a warning and leaves the property unset, so every variable used here must exist in all 7 themes.
  */
 .dock-node {
   -fx-background-color: -color-bg-default;
@@ -133,7 +137,7 @@
 
 .dock-title-label {
   -fx-padding: 0 0 3 0;
-  -fx-text-fill: -fx-text-base-color;
+  -fx-text-fill: -color-fg-default;
   -fx-effect: dropshadow( gaussian, rgba(255,255,255,0.2), 0,0,0,1 );
 }
 

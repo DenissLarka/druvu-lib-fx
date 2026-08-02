@@ -27,6 +27,8 @@ is opt-in. Nothing here requires implementing a toolkit interface to start an ap
 | `auth`   | Self-contained sign-in control with a pluggable backend (`LoginPane`, `Authenticator`)        |
 | `prefs`  | Per-app home directory, properties-backed preferences, window-geometry persistence           |
 | `notify` | Toast notifications — info/success/warning/error, auto-dismiss                                |
+| `theme`  | Theme menu over [AtlantaFX](https://github.com/mkpaz/atlantafx) (MIT) — 7 themes, persisted; kit widgets follow the current one (`FxTheme`, `ThemeManager`, `KitStyles`) |
+| `os`     | macOS application menu (About / Settings / Quit) and Finder open-file events, on plain `java.awt.Desktop` — declines quietly elsewhere (`DesktopHooks`) |
 | `util`   | FX threading helpers (`FxThreads`) — every toolkit API states its threading contract in its terms |
 
 ## Build

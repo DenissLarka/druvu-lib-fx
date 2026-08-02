@@ -60,6 +60,11 @@
 				<artifactId>javafx-maven-plugin</artifactId>
 				<configuration>
 					<mainClass>com.druvu.lib.fx.example/com.druvu.lib.fx.example.MarketWatchApp</mainClass>
+					<!-- No JVM flag renames the macOS menu bar for an unbundled JavaFX run: it shows "java",
+					     and both -Xdock:name and -Dapple.awt.application.name were measured NOT to change it
+					     (2026-08-02, JavaFX 25). Only a jpackage bundle's CFBundleName does. Cosmetic in dev;
+					     see com.druvu.lib.fx.os.DesktopHooks for the full note. If you do add options here,
+					     note the plugin splits each one on whitespace - a value with a space breaks the launch. -->
 				</configuration>
 			</plugin>
 		</plugins>

@@ -19,6 +19,40 @@ public class StatusBarModelTest {
         FxTestToolkit.ensureStarted();
     }
 
+    /**
+     * A model built after a task has already started sees the {@code Finished} it never saw begin. Left unguarded that
+     * drives the count negative and it never recovers - the showcase app read "tasks: -1" for a whole session. Any app
+     * that builds its status bar after kicking off a startup load reproduces this.
+     */
+    @Test
+    public void countNeverGoesNegativeWhenSubscribedMidFlight() throws InterruptedException {
+        final FxBus bus = new FxBus();
+        final StatusBarModel model = new StatusBarModel(bus);
+        final CountDownLatch done = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            // No matching Started: this model was created after the task began.
+            bus.publish(new TaskEvent.Finished(7, "startup load", Duration.ofMillis(3)));
+            Platform.runLater(() -> {
+                assertThat(model.runningTasksProperty().get())
+                        .as("unmatched Finished must floor at zero, not -1")
+                        .isZero();
+                assertThat(model.busyProperty().get()).isFalse();
+
+                // And the count must still work afterwards - a floored model is not a stuck model.
+                bus.publish(new TaskEvent.Started(8, "later"));
+                Platform.runLater(() -> {
+                    assertThat(model.runningTasksProperty().get()).isEqualTo(1);
+                    assertThat(model.busyProperty().get()).isTrue();
+                    model.close();
+                    done.countDown();
+                });
+            });
+        });
+
+        assertThat(done.await(10, TimeUnit.SECONDS)).as("assertions ran").isTrue();
+    }
+
     @Test
     public void tracksRunningCountBusyAndMessage() throws InterruptedException {
         final FxBus bus = new FxBus();

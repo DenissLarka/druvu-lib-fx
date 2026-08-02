@@ -6,7 +6,12 @@ import com.druvu.lib.fx.FxTestToolkit;
 import com.druvu.lib.fx.dock.DockNode;
 import com.druvu.lib.fx.dock.DockPane;
 import com.druvu.lib.fx.dock.DockPos;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -25,6 +30,10 @@ import org.testng.annotations.Test;
  * proves the CSS works.
  */
 public class KitStylesTest {
+
+    private static final Pattern COMMENT = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
+    private static final Pattern DECLARATION = Pattern.compile("(-fx-[a-z-]+)\\s*:\\s*([^;{}]+);");
+    private static final Pattern MODENA_LOOKUP = Pattern.compile("(?<![\\w-])-fx-[a-z-]+");
 
     @BeforeClass
     public void startToolkit() {
@@ -91,6 +100,40 @@ public class KitStylesTest {
         dockPane.layout();
         stage.hide();
         return (Color) node.getBackground().getFills().getFirst().getFill();
+    }
+
+    /**
+     * The regression guard the colour assertions cannot provide. A failed lookup is invisible to a rendered-value
+     * check: JavaFX drops the declaration and the node inherits from a less specific rule, which usually looks close
+     * enough - three Modena leftovers survived the AtlantaFX migration exactly that way, and one of them
+     * ({@code .dock-area-indicator}) left the drag-and-drop preview with no fill at all.
+     *
+     * <p>So assert on the source instead: in kit stylesheets every colour must come from AtlantaFX, whose variables are
+     * all {@code -color-*}. A {@code -fx-*} token in a <em>value</em> is therefore always a Modena lookup, and Modena
+     * is exactly what is not applied once a theme is.
+     */
+    @Test
+    public void kitStylesheetsLookUpNoModenaVariables() throws Exception {
+        for (String stylesheet : List.of("dock/default.css", "theme/druvu-kit.css")) {
+            final String css = readKitResource(stylesheet);
+            final Matcher declaration = DECLARATION.matcher(COMMENT.matcher(css).replaceAll(" "));
+            while (declaration.find()) {
+                final String property = declaration.group(1);
+                final String value = declaration.group(2).trim();
+                assertThat(MODENA_LOOKUP.matcher(value).find())
+                        .as(
+                                "%s: '%s: %s' looks up a Modena variable, which no FxTheme defines",
+                                stylesheet, property, value)
+                        .isFalse();
+            }
+        }
+    }
+
+    private static String readKitResource(String path) throws Exception {
+        try (InputStream in = KitStyles.class.getModule().getResourceAsStream("com/druvu/lib/fx/" + path)) {
+            assertThat(in).as("%s is on the classpath", path).isNotNull();
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     @Test

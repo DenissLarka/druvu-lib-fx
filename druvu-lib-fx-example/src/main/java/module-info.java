@@ -4,6 +4,11 @@ module com.druvu.lib.fx.example {
     requires javafx.controls;
     requires javafx.fxml;
 
+    // Opts in to com.druvu.lib.fx.os.DesktopHooks (macOS application menu + open-file events). The
+    // toolkit only declares 'requires static java.desktop', because AWT costs ~34 MB in a jlink image
+    // and an app that wants none of this should not pay for it - so the opt-in lives here.
+    requires java.desktop;
+
     // javafx.graphics reflectively instantiates the Application subclass
     exports com.druvu.lib.fx.example to
             javafx.graphics;
