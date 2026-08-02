@@ -22,6 +22,16 @@
 		<Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
 	</Match>
 
+	<!-- ThemeManager holds the app's Prefs on purpose: remembering the chosen theme across launches
+	     IS its second job, and the store is a collaborator the app owns and shares (the same instance
+	     also backs WindowGeometry). Copying it would defeat the point - a write must reach the app's
+	     real preference file. Only the constructor's store is excluded; the rest of the class keeps
+	     the detector, and currentProperty() hands back a genuine ReadOnly view, not the wrapper. -->
+	<Match>
+		<Class name="com.druvu.lib.fx.theme.ThemeManager"/>
+		<Bug pattern="EI_EXPOSE_REP2"/>
+	</Match>
+
 	<!-- @FXML fields are injected and initialize()/handlers invoked reflectively by FXMLLoader;
 	     SpotBugs cannot see the writes/calls. -->
 	<Match>

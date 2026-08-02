@@ -1,0 +1,49 @@
+/*
+ * druvu-lib-fx - styling for the toolkit's own widgets.
+ *
+ * Every colour here is a looked-up colour from the applied AtlantaFX theme, never a literal, so a
+ * toolkit widget follows whatever FxTheme the app applied - light or dark - without the toolkit
+ * knowing which. The variable names below are AtlantaFX's public contract and are defined
+ * identically by all seven themes.
+ *
+ * These variables only exist once a theme has been applied (ThemeManager.apply / applyStored).
+ * With no theme applied JavaFX falls back to Modena, which does not define them: the lookups then
+ * fail, JavaFX logs a conversion warning and leaves the property unset. ThemeManager warns once
+ * when a toolkit widget is built in that state - see ThemeManager.warnIfNoThemeApplied().
+ */
+
+/* --- notify.Notifications toasts ---------------------------------------- */
+
+.druvu-toast {
+    -fx-background-radius: 6;
+    -fx-effect: dropshadow(gaussian, -color-shadow-default, 8, 0.2, 0, 2);
+}
+
+/* Text sits on an emphasis-coloured fill, which is what -color-fg-emphasis is for. */
+.druvu-toast > .label {
+    -fx-text-fill: -color-fg-emphasis;
+    -fx-font-weight: bold;
+}
+
+.druvu-toast-info {
+    -fx-background-color: -color-accent-emphasis;
+}
+
+.druvu-toast-success {
+    -fx-background-color: -color-success-emphasis;
+}
+
+.druvu-toast-warning {
+    -fx-background-color: -color-warning-emphasis;
+}
+
+.druvu-toast-error {
+    -fx-background-color: -color-danger-emphasis;
+}
+
+/* --- auth.LoginPane ------------------------------------------------------ */
+
+/* Failure text on the normal background, so the foreground (-fg) tone, not the emphasis fill. */
+.druvu-error-label {
+    -fx-text-fill: -color-danger-fg;
+}

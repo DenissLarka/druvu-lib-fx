@@ -1,6 +1,7 @@
 package com.druvu.lib.fx.auth;
 
 import com.druvu.lib.fx.exec.FxExec;
+import com.druvu.lib.fx.theme.KitStyles;
 import com.druvu.lib.fx.util.FxThreads;
 import java.util.Objects;
 import java.util.concurrent.CompletionException;
@@ -50,8 +51,9 @@ public final class LoginPane<P> extends VBox {
 
         usernameField.setPromptText("Username");
         passwordField.setPromptText("Password");
-        errorLabel.setStyle("-fx-text-fill: #b00020;");
+        errorLabel.getStyleClass().add(KitStyles.ERROR_LABEL);
         errorLabel.setWrapText(true);
+        KitStyles.install(this);
 
         // Login is disabled while busy or when no username is entered; Enter submits from either field.
         loginButton.disableProperty().bind(busy.or(usernameField.textProperty().isEmpty()));

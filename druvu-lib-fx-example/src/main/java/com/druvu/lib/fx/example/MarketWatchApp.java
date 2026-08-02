@@ -19,6 +19,8 @@ import com.druvu.lib.fx.prefs.AppHome;
 import com.druvu.lib.fx.prefs.Prefs;
 import com.druvu.lib.fx.prefs.WindowGeometry;
 import com.druvu.lib.fx.status.StatusBarModel;
+import com.druvu.lib.fx.theme.FxTheme;
+import com.druvu.lib.fx.theme.ThemeManager;
 import com.druvu.lib.fx.util.FxThreads;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -33,6 +35,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleButton;
@@ -70,6 +73,7 @@ public final class MarketWatchApp extends Application {
     private final List<Panel> panels = new ArrayList<>();
 
     private final Prefs prefs = Prefs.in(AppHome.of("market-watch"));
+    private final ThemeManager themeManager = new ThemeManager(prefs);
 
     private DockPane dockPane;
     private StatusBarModel statusBarModel;
@@ -82,6 +86,10 @@ public final class MarketWatchApp extends Application {
     @Override
     public void start(Stage stage) {
         FxThreads.requireFx();
+        // Theme first, so the login screen already wears last session's choice. The toolkit never
+        // applies a theme by itself - setUserAgentStylesheet restyles the whole JVM, so it is the
+        // app's call, not the library's.
+        themeManager.applyStored();
         notifications = new Notifications(stage);
 
         final Scene scene = new Scene(new BorderPane(), 1280, 800);
@@ -185,11 +193,29 @@ public final class MarketWatchApp extends Application {
             }
             final boolean live = event instanceof TaskEvent.Started;
             liveLabel.setText(live ? "LIVE" : "idle");
-            liveLabel.setStyle(live ? "-fx-text-fill: #1a7f37; -fx-font-weight: bold;" : "");
+            // A theme colour, not a literal green: inline styles resolve looked-up colours too.
+            liveLabel.setStyle(live ? "-fx-text-fill: -color-success-fg; -fx-font-weight: bold;" : "");
         }));
 
-        toolBar.getItems().addAll(feedToggle, new Separator(), liveLabel);
+        toolBar.getItems().addAll(feedToggle, new Separator(), liveLabel, new Separator(), buildThemePicker());
         return toolBar;
+    }
+
+    /**
+     * The theme picker. Switching is instant and process-wide, and {@link ThemeManager} writes the choice straight to
+     * the preference file - so the next launch opens on the same theme (see {@link #start}).
+     */
+    private ComboBox<FxTheme> buildThemePicker() {
+        final ComboBox<FxTheme> picker = new ComboBox<>();
+        picker.getItems().setAll(FxTheme.values());
+        picker.setValue(themeManager.current());
+        picker.valueProperty().addListener((_, _, theme) -> {
+            if (theme != null) {
+                themeManager.apply(theme);
+            }
+        });
+        picker.setTooltip(new Tooltip("Theme (remembered between launches)"));
+        return picker;
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.druvu.lib.fx.notify;
 
+import com.druvu.lib.fx.theme.KitStyles;
 import com.druvu.lib.fx.util.FxThreads;
 import java.util.Objects;
 import javafx.animation.FadeTransition;
@@ -27,15 +28,15 @@ public final class Notifications {
 
     /** Severity of a toast, which selects its colour. */
     public enum Level {
-        INFO("#37474f"),
-        SUCCESS("#1a7f37"),
-        WARNING("#b26a00"),
-        ERROR("#b00020");
+        INFO(KitStyles.TOAST_INFO),
+        SUCCESS(KitStyles.TOAST_SUCCESS),
+        WARNING(KitStyles.TOAST_WARNING),
+        ERROR(KitStyles.TOAST_ERROR);
 
-        private final String color;
+        private final String styleClass;
 
-        Level(String color) {
-            this.color = color;
+        Level(String styleClass) {
+            this.styleClass = styleClass;
         }
     }
 
@@ -51,6 +52,9 @@ public final class Notifications {
     public Notifications(Window owner) {
         this.owner = Objects.requireNonNull(owner, "owner");
         stack.setAlignment(Pos.BOTTOM_RIGHT);
+        // The popup is its own scene graph, outside the app's Scene, so the toolkit stylesheet has to
+        // be attached here - it does not inherit the app scene's stylesheets.
+        KitStyles.install(stack);
         popup.getContent().add(stack);
         popup.setAutoFix(false);
         // The anchor is the content's bottom-right corner, so the stack grows up-left from a fixed
@@ -141,12 +145,12 @@ public final class Notifications {
         final Label label = new Label(message);
         label.setWrapText(true);
         label.setMaxWidth(320);
-        label.setStyle("-fx-text-fill: white; -fx-font-weight: bold;");
 
         final HBox box = new HBox(label);
         box.setPadding(new Insets(10, 14, 10, 14));
-        box.setStyle("-fx-background-color: " + level.color + "; -fx-background-radius: 6;"
-                + " -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 8, 0.2, 0, 2);");
+        // Colours come from druvu-kit.css, which resolves them against the applied theme - so a toast
+        // is readable on a dark theme without Notifications knowing a theme exists.
+        box.getStyleClass().addAll(KitStyles.TOAST, level.styleClass);
         return box;
     }
 }

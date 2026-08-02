@@ -7,6 +7,9 @@
 module com.druvu.lib.fx {
     requires transitive javafx.graphics;
     requires transitive javafx.controls;
+    // Transitive on purpose: com.druvu.lib.fx.theme is only a menu over AtlantaFX, so apps must be
+    // able to reach atlantafx.base.theme.Styles/Tweaks without re-declaring the dependency.
+    requires transitive atlantafx.base;
     requires org.slf4j;
 
     // Lombok annotation processing (compile-time only)
@@ -19,5 +22,6 @@ module com.druvu.lib.fx {
     exports com.druvu.lib.fx.notify;
     exports com.druvu.lib.fx.prefs;
     exports com.druvu.lib.fx.status;
+    exports com.druvu.lib.fx.theme;
     exports com.druvu.lib.fx.util;
 }

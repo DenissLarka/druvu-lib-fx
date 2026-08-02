@@ -40,7 +40,10 @@ Bundled at `com/druvu/lib/fx/dock/` in `druvu-lib-fx`:
 - **`default.css`** — from DockFX. The upstream file still carried a stale **GPL-3.0** header from
   2015 even though the project as a whole is MPL-2.0; the header has been aligned to MPL-2.0 here.
   The `.dock-title-label` `-fx-graphic` rule was dropped — it referenced `docknode.png`, a
-  demo-only asset that is **not** vendored.
+  demo-only asset that is **not** vendored. The `.dock-node` / `.dock-title-bar` colours were
+  changed from the Modena-only lookups `-fx-background` / `-fx-outer-border` to the AtlantaFX
+  equivalents (`-color-bg-default`, `-color-bg-subtle`, `-color-border-default`), so the dock
+  follows the theme applied via `ThemeManager` instead of rendering unstyled under it.
 - **Dock-indicator PNGs** (`bottom/center/close/left/maximize/restore/right/top.png`) — introduced
   upstream by the commit *"Cleanup Fix line endings and switch to free icons."* (2015-08-23),
   i.e. redistributable "free icons". `demo/docknode.png` is intentionally excluded.

@@ -24,6 +24,7 @@
 		     There are deliberately NO org.openjfx dependencies - apps ship their JDK via the
 		     druvu install pipeline, so the fx modules are version-locked to the JDK. -->
 
+		<atlantafx.version>2.1.0</atlantafx.version>
 		<lombok.version>1.18.46</lombok.version>
 		<slf4j.version>2.0.18</slf4j.version>
 		<testng.version>7.12.0</testng.version>
@@ -80,6 +81,21 @@
 				<groupId>com.druvu</groupId>
 				<artifactId>druvu-lib-fx</artifactId>
 				<version>${project.version}</version>
+			</dependency>
+			<!-- AtlantaFX: the theme collection (MIT). A real JPMS module (atlantafx.base) with no
+			     native libraries and no automatic-module dependencies, so it stays jlink-friendly for
+			     the druvu install pipeline. Its own POM declares org.openjfx:javafx-controls at compile
+			     scope - excluded here, because JavaFX comes from the JDK (see the note above). -->
+			<dependency>
+				<groupId>io.github.mkpaz</groupId>
+				<artifactId>atlantafx-base</artifactId>
+				<version>${atlantafx.version}</version>
+				<exclusions>
+					<exclusion>
+						<groupId>org.openjfx</groupId>
+						<artifactId>javafx-controls</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 			<dependency>
 				<groupId>org.slf4j</groupId>

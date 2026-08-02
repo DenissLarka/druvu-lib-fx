@@ -18,6 +18,16 @@
 	<dependencies>
 
 		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+		<!-- THEME -->
+		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+		<!-- Compile scope on purpose: com.druvu.lib.fx.theme wraps it and module-info re-exports it
+		     ('requires transitive'), so apps get AtlantaFX's Styles/Tweaks constants for free. -->
+		<dependency>
+			<groupId>io.github.mkpaz</groupId>
+			<artifactId>atlantafx-base</artifactId>
+		</dependency>
+
+		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 		<!-- LOG -->
 		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 		<dependency>
