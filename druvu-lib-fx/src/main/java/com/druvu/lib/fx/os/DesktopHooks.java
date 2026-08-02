@@ -46,6 +46,19 @@ import org.slf4j.LoggerFactory;
  * <p>The bar must be in the scene graph for macOS to pick it up - {@code setUseSystemMenuBar} on a detached
  * {@code MenuBar} does nothing.
  *
+ * <p><b>And that leaves a trap.</b> Because the node stays in the graph, it keeps its layout box: measured in a real
+ * themed app, an adopted {@code MenuBar} still occupies <b>8&nbsp;px</b> at the top of the window and paints the
+ * theme's {@code .menu-bar} background and bottom border - a stray line a millimetre under the title bar that looks
+ * like a border on whatever sits below it. The height comes from the theme's padding, so a bare {@code MenuBar} outside
+ * a theme reports {@code height = 0.0} and hides the problem. Collapse it where the menus were adopted, but never
+ * remove it:
+ *
+ * <pre>{@code
+ * if (macOS) {
+ *     menuBar.getStyleClass().add("system-menu-bar-host"); // CSS: padding 0, transparent, min/pref/max height 0
+ * }
+ * }</pre>
+ *
  * <h2>The app's name in the menu is not here either</h2>
  *
  * <p>An unbundled JVM shows up as <b>"java"</b> in the macOS menu bar, and nothing here changes that - the title comes
