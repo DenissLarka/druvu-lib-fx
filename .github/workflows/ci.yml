@@ -1,0 +1,34 @@
+# Builds and verifies the reactor on every push to main and on every pull request.
+# This is the gate that catches breakage (e.g. Renovate dependency bumps) before it lands on main —
+# the publish workflow only runs on release, so without this a red build stays invisible until
+# release time.
+#
+# JDK 25 with JavaFX bundled (Azul Zulu 'jdk+fx'): the toolkit resolves javafx.* from the JDK and has
+# no org.openjfx dependencies. The build runs under xvfb because the tests start the real JavaFX
+# toolkit (Platform.startup) and need a virtual display; xvfb is preinstalled on ubuntu-latest.
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 25 (Zulu, JavaFX bundled)
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'zulu'
+          java-package: 'jdk+fx'
+          cache: 'maven'
+
+      - name: Build and verify
+        run: xvfb-run -a mvn -B verify
