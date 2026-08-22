@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Modena compatibility bridge. Third-party controls ship Modena-era CSS that looks up JavaFX
+// default-theme variables; under any AtlantaFX-style theme those lookups fail - JavaFX logs a
+// warning per rule and DROPS the declaration (seen in the field 2026-08-22: ControlsFX
+// customtextfield.css, via the PreferencesFX settings dialog - six lookups). A user-agent theme
+// reaches every scene (dialogs, floats, popups), so defining the names here silences the whole
+// class JVM-wide and gives legacy controls brand-correct colours.
+// Evidence-driven: only names actually observed failing are bridged - extend when a new one
+// shows up in a log, never speculatively.
+.root {
+  -fx-accent: -color-accent-emphasis;
+  -fx-focus-color: -color-accent-emphasis;
+  // "faint" focus ring: the subtle wash (alpha in dark, solid lavender in light) - the brand's
+  // pale ring either way
+  -fx-faint-focus-color: -color-accent-subtle;
+  -fx-control-inner-background: -color-bg-default;
+  -fx-text-inner-color: -color-fg-default;
+  -fx-text-box-border: -color-border-default;
+}

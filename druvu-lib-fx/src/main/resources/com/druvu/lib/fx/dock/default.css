@@ -60,41 +60,45 @@
   -fx-padding: 4;
 }
 
-/* Set the icons for the indicator buttons here. */
+/* Position-indicator buttons: shaped Phosphor glyphs (align-* + square, bold weight, MIT - see
+ * NOTICE.md), same technique as the title-bar buttons below. The existing
+ * .dock-pos-indicator/.dock-root-pane padding rules inset the shape inside this box, which
+ * gives the glyph its breathing room. */
+.dock-center, .dock-top, .dock-right, .dock-bottom, .dock-left,
+.dock-top-root, .dock-right-root, .dock-bottom-root, .dock-left-root {
+  -fx-background-color: -color-accent-fg;
+  -fx-scale-shape: true;
+  -fx-min-width: 28;
+  -fx-pref-width: 28;
+  -fx-max-width: 28;
+  -fx-min-height: 28;
+  -fx-pref-height: 28;
+  -fx-max-height: 28;
+}
+
+.dock-center:hover, .dock-top:hover, .dock-right:hover, .dock-bottom:hover, .dock-left:hover,
+.dock-top-root:hover, .dock-right-root:hover, .dock-bottom-root:hover, .dock-left-root:hover {
+  -fx-background-color: derive(-color-accent-fg, 40%);
+}
+
+.dock-top, .dock-top-root {
+  -fx-shape: "M228,40a12,12,0,0,1-12,12H40a12,12,0,0,1,0-24H216A12,12,0,0,1,228,40ZM212,88v88a20,20,0,0,1-20,20H156a20,20,0,0,1-20-20V88a20,20,0,0,1,20-20h36A20,20,0,0,1,212,88Zm-24,4H160v80h28Zm-68-4V216a20,20,0,0,1-20,20H64a20,20,0,0,1-20-20V88A20,20,0,0,1,64,68h36A20,20,0,0,1,120,88ZM96,92H68V212H96Z";
+}
+
+.dock-right, .dock-right-root {
+  -fx-shape: "M228,40V216a12,12,0,0,1-24,0V40a12,12,0,0,1,24,0ZM188,64v36a20,20,0,0,1-20,20H80a20,20,0,0,1-20-20V64A20,20,0,0,1,80,44h88A20,20,0,0,1,188,64Zm-24,4H84V96h80Zm24,88v36a20,20,0,0,1-20,20H40a20,20,0,0,1-20-20V156a20,20,0,0,1,20-20H168A20,20,0,0,1,188,156Zm-24,4H44v28H164Z";
+}
+
+.dock-bottom, .dock-bottom-root {
+  -fx-shape: "M228,216a12,12,0,0,1-12,12H40a12,12,0,0,1,0-24H216A12,12,0,0,1,228,216Zm-92-48V80a20,20,0,0,1,20-20h36a20,20,0,0,1,20,20v88a20,20,0,0,1-20,20H156A20,20,0,0,1,136,168Zm24-4h28V84H160ZM44,168V40A20,20,0,0,1,64,20h36a20,20,0,0,1,20,20V168a20,20,0,0,1-20,20H64A20,20,0,0,1,44,168Zm24-4H96V44H68Z";
+}
+
+.dock-left, .dock-left-root {
+  -fx-shape: "M52,40V216a12,12,0,0,1-24,0V40a12,12,0,0,1,24,0Zm16,60V64A20,20,0,0,1,88,44h88a20,20,0,0,1,20,20v36a20,20,0,0,1-20,20H88A20,20,0,0,1,68,100Zm24-4h80V68H92Zm144,60v36a20,20,0,0,1-20,20H88a20,20,0,0,1-20-20V156a20,20,0,0,1,20-20H216A20,20,0,0,1,236,156Zm-24,4H92v28H212Z";
+}
+
 .dock-center {
-  -fx-graphic: url(center.png);
-}
-
-.dock-top {
-  -fx-graphic: url(top.png);
-}
-
-.dock-right {
-  -fx-graphic: url(right.png);
-}
-
-.dock-bottom {
-  -fx-graphic: url(bottom.png);
-}
-
-.dock-left {
-  -fx-graphic: url(left.png);
-}
-
-.dock-top-root {
-  -fx-graphic: url(top.png);
-}
-
-.dock-right-root {
-  -fx-graphic: url(right.png);
-}
-
-.dock-bottom-root {
-  -fx-graphic: url(bottom.png);
-}
-
-.dock-left-root {
-  -fx-graphic: url(left.png);
+  -fx-shape: "M208,28H48A20,20,0,0,0,28,48V208a20,20,0,0,0,20,20H208a20,20,0,0,0,20-20V48A20,20,0,0,0,208,28Zm-4,176H52V52H204Z";
 }
 
 /*******************************************************************************
@@ -129,14 +133,15 @@
 
 .dock-title-bar {
   -fx-background-color: -color-bg-subtle;
-  -fx-padding: 2;
-  -fx-spacing: 3;
+  -fx-padding: 2 4 2 4;
+  -fx-spacing: 6;
+  -fx-alignment: CENTER_LEFT;
   -fx-border-width: 1;
   -fx-border-color: -color-border-default;
 }
 
 .dock-title-label {
-  -fx-padding: 0 0 3 0;
+  -fx-padding: 0;
   -fx-text-fill: -color-fg-default;
   -fx-effect: dropshadow( gaussian, rgba(255,255,255,0.2), 0,0,0,1 );
 }
@@ -148,23 +153,44 @@
  * button is hovered, some factor of the default style's
  * excessively wide buttons.
  */
+/* Title-bar buttons are pure shapes: the button's own background is the glyph path, scaled to
+ * the button box and painted with theme colours - replacing the original fixed-colour PNG
+ * graphics, which followed no theme. Glyph paths are Phosphor Icons, bold weight (MIT - see
+ * NOTICE.md): x = close, browser = maximize (shown while floating), browsers = detach/restore.
+ */
 .dock-title-bar .button {
-  -fx-padding: 1 4 1 4;
+  /* derive(): one notch lighter than muted in every theme, without inventing a new token */
+  -fx-background-color: derive(-color-fg-muted, 25%);
+  -fx-scale-shape: true;
+  -fx-padding: 0;
+  -fx-min-width: 16;
+  -fx-pref-width: 16;
+  -fx-max-width: 16;
+  -fx-min-height: 14;
+  -fx-pref-height: 14;
+  -fx-max-height: 14;
 }
 
-/* Set the icons for the dock title bar's buttons here. */
+.dock-title-bar .button:hover {
+  -fx-background-color: -color-fg-default;
+}
+
+.dock-title-bar .dock-close-button:hover {
+  -fx-background-color: -color-danger-fg;
+}
+
 .dock-state-button {
-  -fx-graphic: url(restore.png);
+  -fx-shape: "M220,32H76A20,20,0,0,0,56,52V72H36A20,20,0,0,0,16,92V204a20,20,0,0,0,20,20H180a20,20,0,0,0,20-20V184h20a20,20,0,0,0,20-20V52A20,20,0,0,0,220,32ZM176,96v16H40V96Zm0,104H40V136H176Zm40-40H200V92a20,20,0,0,0-20-20H80V56H216Z";
 }
 
 .dock-node:floating .dock-state-button {
-  -fx-graphic: url(maximize.png);
+  -fx-shape: "M216,36H40A20,20,0,0,0,20,56V200a20,20,0,0,0,20,20H216a20,20,0,0,0,20-20V56A20,20,0,0,0,216,36Zm-4,24V84H44V60ZM44,196V108H212v88Z";
 }
 
 .dock-node:maximized .dock-state-button {
-  -fx-graphic: url(restore.png);
+  -fx-shape: "M220,32H76A20,20,0,0,0,56,52V72H36A20,20,0,0,0,16,92V204a20,20,0,0,0,20,20H180a20,20,0,0,0,20-20V184h20a20,20,0,0,0,20-20V52A20,20,0,0,0,220,32ZM176,96v16H40V96Zm0,104H40V136H176Zm40-40H200V92a20,20,0,0,0-20-20H80V56H216Z";
 }
 
 .dock-close-button {
-  -fx-graphic: url(close.png);
+  -fx-shape: "M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z";
 }

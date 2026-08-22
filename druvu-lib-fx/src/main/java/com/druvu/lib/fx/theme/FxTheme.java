@@ -8,10 +8,13 @@ import atlantafx.base.theme.NordLight;
 import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
+import java.net.URL;
 import java.util.Optional;
 
 /**
- * The themes the toolkit offers, wrapping the <a href="https://github.com/mkpaz/atlantafx">AtlantaFX</a> collection.
+ * The themes the toolkit offers: the druvu brand themes (compiled at build time from <a
+ * href="https://github.com/mkpaz/atlantafx">AtlantaFX</a>'s SCSS sources with the druvu palette) plus the stock
+ * AtlantaFX collection.
  *
  * <p>This enum is a menu, not an abstraction: it exists so an app can list, persist and restore a theme by a stable
  * name without inventing its own mapping. Anything richer - style classes, control tweaks - comes straight from
@@ -22,6 +25,11 @@ import java.util.Optional;
  * stylesheet, it is stated per theme.
  */
 public enum FxTheme {
+    // The druvu brand themes lead the menu. They are compiled at build time from AtlantaFX's own
+    // SCSS sources with the palette-v1 ramps (src/main/scss; validated spec in the druvu records)
+    // and ship inside this jar, so they follow the exact same variable system as the stock themes.
+    DRUVU_LIGHT("Druvu Light", "druvu-light.css", false),
+    DRUVU_DARK("Druvu Dark", "druvu-dark.css", true),
     PRIMER_LIGHT(new PrimerLight()),
     PRIMER_DARK(new PrimerDark()),
     NORD_LIGHT(new NordLight()),
@@ -48,6 +56,24 @@ public enum FxTheme {
         // from whichever JDK the app ships.
         this.stylesheet = theme.getUserAgentStylesheet();
         this.dark = theme.isDarkMode();
+    }
+
+    FxTheme(String displayName, String kitResource, boolean dark) {
+        this.displayName = displayName;
+        this.stylesheet = kitStylesheet(kitResource);
+        this.dark = dark;
+    }
+
+    /**
+     * Resolves a theme stylesheet that ships in this jar (next to this class). Failing at class-load is deliberate: a
+     * broken theme build should stop the first code that touches the enum, not let the app render Modena silently.
+     */
+    private static String kitStylesheet(String resource) {
+        final URL url = FxTheme.class.getResource(resource);
+        if (url == null) {
+            throw new IllegalStateException("Kit theme stylesheet missing from the jar: " + resource);
+        }
+        return url.toExternalForm();
     }
 
     /** A human-facing name, suitable for a menu item. */

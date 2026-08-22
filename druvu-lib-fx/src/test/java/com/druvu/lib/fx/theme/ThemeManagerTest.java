@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.druvu.lib.fx.FxTestToolkit;
 import com.druvu.lib.fx.prefs.Prefs;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
@@ -20,12 +22,12 @@ public class ThemeManagerTest {
     }
 
     @Test
-    public void everyThemeResolvesItsStylesheet() {
+    public void everyThemeResolvesItsStylesheet() throws Exception {
         for (FxTheme theme : FxTheme.values()) {
             assertThat(theme.stylesheet()).as("stylesheet of %s", theme).isNotBlank();
-            assertThat(getClass().getClassLoader().getResource(stripJarPrefix(theme.stylesheet())))
-                    .as("stylesheet resource of %s exists", theme)
-                    .isNotNull();
+            assertThat(stylesheetBytes(theme))
+                    .as("stylesheet of %s is readable", theme)
+                    .isNotEmpty();
         }
     }
 
@@ -92,8 +94,22 @@ public class ThemeManagerTest {
         FxTestToolkit.resetUserAgentStylesheet();
     }
 
-    /** AtlantaFX hands back a classpath-relative path; strip the leading slash for ClassLoader lookup. */
-    private static String stripJarPrefix(String stylesheet) {
-        return stylesheet.startsWith("/") ? stylesheet.substring(1) : stylesheet;
+    /**
+     * Stock AtlantaFX themes hand back a classpath-relative path; the druvu themes hand back a resolved URL (they ship
+     * in the kit jar and are resolved at enum class-load). Either way the string must point at a readable stylesheet -
+     * reading the bytes is the honest check, since this exact string is what Application.setUserAgentStylesheet gets.
+     */
+    private byte[] stylesheetBytes(FxTheme theme) throws IOException {
+        final String stylesheet = theme.stylesheet();
+        if (stylesheet.contains(":")) {
+            try (InputStream in = URI.create(stylesheet).toURL().openStream()) {
+                return in.readAllBytes();
+            }
+        }
+        final String path = stylesheet.startsWith("/") ? stylesheet.substring(1) : stylesheet;
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(path)) {
+            assertThat(in).as("classpath stylesheet of %s", theme).isNotNull();
+            return in.readAllBytes();
+        }
     }
 }

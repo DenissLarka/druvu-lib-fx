@@ -83,6 +83,63 @@
 				</includes>
 			</resource>
 		</resources>
+		<plugins>
+			<!-- DRUVU THEMES step 1: unpack AtlantaFX's SCSS sources (atlantafx-styles) so the druvu
+			     theme entry files can @forward its settings modules with the brand ramps. Version-locked
+			     to the runtime by sharing ${atlantafx.version}: the compiled CSS can never come from a
+			     different styles generation than the atlantafx-base on the module path. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>${maven-dependency-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>unpack-atlantafx-styles</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>io.github.mkpaz</groupId>
+									<artifactId>atlantafx-styles</artifactId>
+									<version>${atlantafx.version}</version>
+									<type>jar</type>
+									<overWrite>true</overWrite>
+									<outputDirectory>${project.build.directory}/atlantafx-styles</outputDirectory>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- DRUVU THEMES step 2: compile the theme SCSS to user-agent CSS, straight into
+			     target/classes so it ships in the jar next to FxTheme - which fails loudly at
+			     class-load if these files are missing. The plugin fetches dart-sass per platform. -->
+			<plugin>
+				<groupId>us.hebi.sass</groupId>
+				<artifactId>sass-cli-maven-plugin</artifactId>
+				<version>${sass-cli-maven-plugin.version}</version>
+				<configuration>
+					<args>
+						<arg>--load-path=${project.build.directory}/atlantafx-styles/atlantafx/styles</arg>
+						<arg>--no-source-map</arg>
+						<arg>${project.basedir}/src/main/scss/druvu-dark.scss:${project.build.outputDirectory}/com/druvu/lib/fx/theme/druvu-dark.css</arg>
+						<arg>${project.basedir}/src/main/scss/druvu-light.scss:${project.build.outputDirectory}/com/druvu/lib/fx/theme/druvu-light.css</arg>
+					</args>
+				</configuration>
+				<executions>
+					<execution>
+						<id>compile-druvu-themes</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
 	</build>
 
 </project>

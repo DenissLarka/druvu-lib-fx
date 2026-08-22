@@ -1,0 +1,136 @@
+// SPDX-License-Identifier: Apache-2.0
+// DRUVU_LIGHT - the druvu brand light theme.
+//
+// Every hex below comes from the validated ramps spec (druvu records: engineering/druvu-lib-fx/
+// druvu-theme-ramps.md - 48 WCAG checks computed over the exact rendered composites). Do not tune
+// a colour here without re-running that validation.
+//
+// The brand pair appears verbatim: indigo = accent-5 (accent-fg AND accent-emphasis, 6.8:1 both
+// against white and under white text), lavender = accent-0 = accent-subtle, so selection and
+// title-bar washes literally ARE the brand tint. Semantic inks are deliberately deep: P&L numbers
+// must hold >= 4.5:1 even on a lavender selected row.
+
+@use "sass:color";
+@use "druvu" as druvu;
+
+@forward "settings/color-scale" with (
+  $dark: #1b1d24,
+  $light: #ffffff,
+
+  $base-0: #f5f6fa,
+  $base-1: #e6e8f0,
+  $base-2: #d7dae5,
+  $base-3: #b9becc,
+  $base-4: #9ba1b3,
+  $base-5: #6d7387,
+  $base-6: #555b6d,
+  $base-7: #444958,
+  $base-8: #343743,
+  $base-9: #23252e,
+
+  $accent-0: druvu.$lavender,
+  $accent-1: #b9c1f7,
+  $accent-2: #9ba3ee,
+  $accent-3: #7d84e6,
+  $accent-4: #5f66dd,
+  $accent-5: druvu.$indigo,
+  $accent-6: #373cb5,
+  $accent-7: #2e3295,
+  $accent-8: #242775,
+  $accent-9: #1a1c55,
+
+  $success-0: #dcf5e6,
+  $success-1: #b0dfc3,
+  $success-2: #84caa0,
+  $success-3: #57b47e,
+  $success-4: #2b9e5b,
+  $success-5: #116e39,
+  $success-6: #0f6032,
+  $success-7: #0c522a,
+  $success-8: #0a4322,
+  $success-9: #08351b,
+
+  $warning-0: #fdf3d0,
+  $warning-1: #ebd69e,
+  $warning-2: #d9b86d,
+  $warning-3: #c79a3c,
+  $warning-4: #b57d0a,
+  $warning-5: #95660a,
+  $warning-6: #7f5708,
+  $warning-7: #694807,
+  $warning-8: #533906,
+  $warning-9: #3d2a04,
+
+  $danger-0: #feebe9,
+  $danger-1: #f6c2c1,
+  $danger-2: #ef989a,
+  $danger-3: #e86e72,
+  $danger-4: #e0454a,
+  $danger-5: #bd282c,
+  $danger-6: #a12226,
+  $danger-7: #851c1f,
+  $danger-8: #691618,
+  $danger-9: #4d1012
+);
+@use "settings/color-scale" as scale;
+
+@forward "settings/color-vars" with (
+  $fg-default: scale.$base-9,
+  $fg-muted: scale.$base-6,
+  $fg-subtle: scale.$base-5,
+  $fg-onEmphasis: #ffffff,
+
+  $canvas-default: scale.$light,
+  $canvas-overlay: scale.$light,
+  $canvas-inset: #eef0f6,
+  $canvas-subtle: scale.$base-0,
+
+  $border-default: scale.$base-2,
+  $border-muted: #e2e4ee,
+  $border-subtle: #ebedf5,
+  $shadow-default: #d7dae5,
+
+  $neutral-emphasisPlus: scale.$base-9,
+  $neutral-emphasis: scale.$base-5,
+  $neutral-muted: color.change(#afb6c9, $alpha: 0.2),
+  $neutral-subtle: color.change(#f0f1f7, $alpha: 0.5),
+
+  // the brand indigo is both the ink and the fill; lavender is the solid subtle wash
+  $accent-fg: scale.$accent-5,
+  $accent-emphasis: scale.$accent-5,
+  $accent-muted: color.change(#98a1f3, $alpha: 0.4),
+  $accent-subtle: druvu.$lavender,
+
+  $success-fg: scale.$success-5,
+  $success-emphasis: #1b7d45,
+  $success-muted: color.change(#4bc07f, $alpha: 0.4),
+  $success-subtle: #dcf5e6,
+
+  $warning-fg: scale.$warning-5,
+  $warning-emphasis: scale.$warning-4,
+  $warning-muted: color.change(#dcab35, $alpha: 0.4),
+  $warning-subtle: #fdf3d0,
+
+  $danger-fg: scale.$danger-5,
+  $danger-emphasis: #cc3437,
+  $danger-muted: color.change(#f28b85, $alpha: 0.4),
+  $danger-subtle: #feebe9
+);
+
+@forward "settings/config" with (
+  $darkMode: false
+);
+
+@use "general";
+
+// Selection wears the brand tint (lavender) instead of the stock neutral grey - validated in the
+// ramps spec (fg-default 11.6:1 and P&L colours >= 4.5:1 on a selected row).
+@forward "components/data" as data-* with (
+  $color-cell-bg-selected: -color-accent-subtle,
+  $color-cell-bg-selected-focused: -color-accent-subtle
+);
+
+@use "components";
+
+// Modena-variable compatibility for third-party controls (see the partial for the story)
+@use "modena-bridge";

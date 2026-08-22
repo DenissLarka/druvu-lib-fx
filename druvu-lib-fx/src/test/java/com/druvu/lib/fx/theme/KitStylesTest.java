@@ -129,6 +129,21 @@ public class KitStylesTest {
         }
     }
 
+    /**
+     * The druvu themes are generated resources: if the sass step quietly produced AtlantaFX defaults instead of the
+     * brand ramps (a load-path or override regression), every colour would still resolve and every rendered-value test
+     * would still pass. So pin the two palette-v1 colours in the compiled output - indigo {@code #4147d5} and lavender
+     * {@code #d7e0ff} appear in no stock AtlantaFX theme.
+     */
+    @Test
+    public void druvuThemesEmbedTheBrandPalette() throws Exception {
+        for (String stylesheet : List.of("theme/druvu-dark.css", "theme/druvu-light.css")) {
+            final String css = readKitResource(stylesheet);
+            assertThat(css).as("%s carries the brand indigo", stylesheet).contains("#4147d5");
+            assertThat(css).as("%s carries the brand lavender", stylesheet).contains("#d7e0ff");
+        }
+    }
+
     private static String readKitResource(String path) throws Exception {
         try (InputStream in = KitStyles.class.getModule().getResourceAsStream("com/druvu/lib/fx/" + path)) {
             assertThat(in).as("%s is on the classpath", path).isNotNull();

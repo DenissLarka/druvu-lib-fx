@@ -1,0 +1,139 @@
+// SPDX-License-Identifier: Apache-2.0
+// DRUVU_DARK - the druvu brand dark theme (the flagship: druvu apps are dark-first).
+//
+// Every hex below comes from the validated ramps spec (druvu records: engineering/druvu-lib-fx/
+// druvu-theme-ramps.md - 48 WCAG checks computed over the exact rendered composites, including
+// pill washes and selected table rows). Do not tune a colour here without re-running that
+// validation; a failed contrast pair is invisible at runtime.
+//
+// Shape: Primer-dark, not Dracula - accent-fg (readable tint, accent-5) is a different stop than
+// accent-emphasis (deep fill under white text, accent-7 = the brand indigo), and borders are
+// neutral so accent stays scarce.
+
+@use "sass:color";
+@use "druvu" as druvu;
+
+@forward "settings/color-scale" with (
+  $dark: #101218,
+  $light: #f4f5f9,
+
+  $base-0: #dadde7,
+  $base-1: #bcc0ce,
+  $base-2: #9da3b5,
+  $base-3: #8c92a6,
+  $base-4: #7c8296,
+  $base-5: #535868,
+  $base-6: #2a2d3a,
+  $base-7: #21232d,
+  $base-8: #181a22,
+  $base-9: #101218,
+
+  $accent-0: druvu.$lavender,
+  $accent-1: #c9d3fd,
+  $accent-2: #bcc5fb,
+  $accent-3: #aeb8f8,
+  $accent-4: #a1aaf6,
+  $accent-5: #939df4,
+  $accent-6: #6a72e4,
+  $accent-7: druvu.$indigo,
+  $accent-8: #34389c,
+  $accent-9: #262a63,
+
+  $success-0: #d3efdf,
+  $success-1: #b6e6cb,
+  $success-2: #99dcb7,
+  $success-3: #7dd3a2,
+  $success-4: #60c98e,
+  $success-5: #43c07a,
+  $success-6: #319d60,
+  $success-7: #1f7a45,
+  $success-8: #185c36,
+  $success-9: #123f26,
+
+  $warning-0: #f9ecd2,
+  $warning-1: #f3ddb5,
+  $warning-2: #ecce97,
+  $warning-3: #e6bf7a,
+  $warning-4: #dfb05c,
+  $warning-5: #d9a13f,
+  $warning-6: #b6862a,
+  $warning-7: #946b15,
+  $warning-8: #6f5010,
+  $warning-9: #4a350a,
+
+  $danger-0: #fde3e0,
+  $danger-1: #fbcec9,
+  $danger-2: #fab8b2,
+  $danger-3: #f8a39c,
+  $danger-4: #f78d85,
+  $danger-5: #f5786e,
+  $danger-6: #de5954,
+  $danger-7: #c73a3a,
+  $danger-8: #922c2c,
+  $danger-9: #5e1f1f
+);
+@use "settings/color-scale" as scale;
+
+@forward "settings/color-vars" with (
+  $fg-default: scale.$base-0,
+  $fg-muted: scale.$base-2,
+  $fg-subtle: scale.$base-4,
+  $fg-onEmphasis: #ffffff,
+
+  $canvas-default: scale.$base-7,
+  $canvas-overlay: #262935,
+  $canvas-inset: scale.$base-8,
+  $canvas-subtle: scale.$base-6,
+
+  $border-default: #3b3f4e,
+  $border-muted: #313545,
+  $border-subtle: #2b2e3c,
+  $shadow-default: #14151c,
+
+  $neutral-emphasisPlus: scale.$base-2,
+  $neutral-emphasis: scale.$base-4,
+  $neutral-muted: color.change(#7c8296, $alpha: 0.4),
+  $neutral-subtle: color.change(#9da3b5, $alpha: 0.1),
+
+  // fg = accent-5 (6.2:1 on the ground); emphasis = accent-7 = brand indigo (white on it: 6.8:1)
+  $accent-fg: scale.$accent-5,
+  $accent-emphasis: scale.$accent-7,
+  $accent-muted: color.change(#5f66e3, $alpha: 0.4),
+  // 0.15, not Dracula's 0.10: gives accent-subtle surfaces (dock title bars, pills) real presence
+  $accent-subtle: color.change(#6f77e8, $alpha: 0.15),
+
+  $success-fg: scale.$success-5,
+  $success-emphasis: scale.$success-7,
+  $success-muted: color.change(#2ea45c, $alpha: 0.4),
+  $success-subtle: color.change(#2ea45c, $alpha: 0.15),
+
+  $warning-fg: scale.$warning-5,
+  $warning-emphasis: scale.$warning-7,
+  $warning-muted: color.change(#c08c2a, $alpha: 0.4),
+  $warning-subtle: color.change(#c08c2a, $alpha: 0.15),
+
+  // danger wash is a deeper red than danger-fg: the composite must stay dark enough
+  // for the light vermilion text (pill check 5.3:1)
+  $danger-fg: scale.$danger-5,
+  $danger-emphasis: scale.$danger-7,
+  $danger-muted: color.change(#d24a44, $alpha: 0.4),
+  $danger-subtle: color.change(#b03636, $alpha: 0.15)
+);
+
+@forward "settings/config" with (
+  $darkMode: true
+);
+
+@use "general";
+
+// Selection wears the brand wash instead of the stock neutral grey - validated in the ramps spec
+// (fg-default 7.3:1 and P&L colours >= 4.8:1 on a selected row).
+@forward "components/data" as data-* with (
+  $color-cell-bg-selected: -color-accent-subtle,
+  $color-cell-bg-selected-focused: -color-accent-subtle
+);
+
+@use "components";
+
+// Modena-variable compatibility for third-party controls (see the partial for the story)
+@use "modena-bridge";

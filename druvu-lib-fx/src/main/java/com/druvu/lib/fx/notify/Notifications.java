@@ -42,6 +42,7 @@ public final class Notifications {
 
     private static final Duration DEFAULT_DURATION = Duration.seconds(4);
     private static final Duration FADE = Duration.millis(250);
+    private static final Duration FADE_IN = Duration.millis(150);
     private static final double MARGIN = 16;
 
     private final Window owner;
@@ -98,8 +99,23 @@ public final class Notifications {
         Objects.requireNonNull(duration, "duration");
 
         final Node toast = buildToast(message, level);
+        toast.setOpacity(0);
         stack.getChildren().add(toast);
+        // The popup is placed from the content's bottom-right ANCHOR, so the content must have its
+        // real size before the popup first shows: without a CSS+layout pass the stack still
+        // measures ~0x0, the popup window materializes past the corner and visibly snaps into
+        // place once the first pulse resolves the true size. The stack sits in the popup's own
+        // scene from construction, so this pass works even while the popup is hidden.
+        stack.applyCss();
+        stack.layout();
         position();
+
+        // Fade the toast in rather than popping to full opacity in one frame - the entry
+        // counterpart of the existing exit fade.
+        final FadeTransition in = new FadeTransition(FADE_IN, toast);
+        in.setFromValue(0);
+        in.setToValue(1);
+        in.play();
 
         final PauseTransition life = new PauseTransition(duration);
         life.setOnFinished(e -> fadeOut(toast));
@@ -134,8 +150,12 @@ public final class Notifications {
         final double x = owner.getX() + owner.getWidth() - MARGIN;
         final double y = owner.getY() + owner.getHeight() - MARGIN;
         if (popup.isShowing()) {
-            popup.setX(x);
-            popup.setY(y);
+            // Anchor setters, NOT Window.setX/setY: the plain setters place the window's TOP-LEFT
+            // at the given point, bypassing the anchor translation - the popup then jumps
+            // right-and-down by its own size. Only the anchor properties go through the
+            // CONTENT_BOTTOM_RIGHT mapping that show(owner, x, y) used.
+            popup.setAnchorX(x);
+            popup.setAnchorY(y);
         } else if (!stack.getChildren().isEmpty()) {
             popup.show(owner, x, y);
         }

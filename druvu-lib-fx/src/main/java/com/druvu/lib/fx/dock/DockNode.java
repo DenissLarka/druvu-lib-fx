@@ -9,8 +9,9 @@
  *
  * Adopted into druvu-lib-fx from DockFX (https://github.com/RobertBColton/DockFX), MPL-2.0.
  * Changes: repackaged org.dockfx -> com.druvu.lib.fx.dock; a floating node's own Scene now gets
- * the dock stylesheet via getStylesheets() (the old StyleManager user-agent route is gone). See
- * NOTICE.md.
+ * the dock stylesheet via getStylesheets() (the old StyleManager user-agent route is gone), and
+ * also inherits the stylesheets of the scene it detached from and of its DockPane, so application
+ * styling survives a detach. See NOTICE.md.
  **/
 
 package com.druvu.lib.fx.dock;
@@ -232,6 +233,9 @@ public class DockNode extends VBox implements EventHandler<MouseEvent> {
       // position the new stage relative to the old scene offset
       Point2D floatScene = this.localToScene(0, 0);
       Point2D floatScreen = this.localToScreen(0, 0);
+      // captured before undock() detaches this node: the scene the panel is leaving is where the
+      // application attached its stylesheets
+      Scene originScene = this.getScene();
 
       // setup window stage
       dockTitleBar.setVisible(this.isCustomTitleBar());
@@ -279,6 +283,14 @@ public class DockNode extends VBox implements EventHandler<MouseEvent> {
       // The floating node lives in its own Scene, so it needs the dock stylesheet applied here
       // (there is no user-agent stylesheet anymore - see DockPane.defaultStylesheet).
       borderPane.getStylesheets().add(DockPane.defaultStylesheet());
+      // The float also leaves the application's Scene behind, so stylesheets attached there or to
+      // the dock pane (fonts, semantic colours, density) would silently stop applying - the float
+      // would render themed but unstyled. Carry them over behind the dock stylesheet, in their
+      // original order, so application rules keep winning ties exactly as in the main window.
+      copyStylesheets(originScene != null ? originScene.getStylesheets() : null);
+      if (dockPane != null) {
+        copyStylesheets(dockPane.getStylesheets());
+      }
       borderPane.setCenter(this);
 
       Scene scene = new Scene(borderPane);
@@ -336,6 +348,17 @@ public class DockNode extends VBox implements EventHandler<MouseEvent> {
    */
   public void setFloating(boolean floating) {
     setFloating(floating, null);
+  }
+
+  private void copyStylesheets(java.util.List<String> stylesheets) {
+    if (stylesheets == null) {
+      return;
+    }
+    for (String stylesheet : stylesheets) {
+      if (!borderPane.getStylesheets().contains(stylesheet)) {
+        borderPane.getStylesheets().add(stylesheet);
+      }
+    }
   }
 
   /**
