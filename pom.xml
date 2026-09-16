@@ -26,7 +26,7 @@
 
 		<atlantafx.version>2.1.0</atlantafx.version>
 		<lombok.version>1.18.46</lombok.version>
-		<slf4j.version>2.0.18</slf4j.version>
+		<slf4j.version>2.0.19</slf4j.version>
 		<testng.version>7.12.0</testng.version>
 		<assertj.version>3.27.7</assertj.version>
 
