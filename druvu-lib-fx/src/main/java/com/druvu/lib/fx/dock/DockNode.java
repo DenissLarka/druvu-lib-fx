@@ -645,7 +645,8 @@ public class DockNode extends VBox implements EventHandler<MouseEvent> {
    * @param sibling The sibling node to dock this node relative to.
    */
   public void dock(DockPane dockPane, DockPos dockPos, Node sibling) {
-    dockImpl(dockPane);
+    dockPane.requireDockable(dockPos);
+    attach(dockPane);
     dockPane.dock(this, dockPos, sibling);
   }
 
@@ -656,16 +657,29 @@ public class DockNode extends VBox implements EventHandler<MouseEvent> {
    * @param dockPos The docking position relative to the sibling of the dock pane.
    */
   public void dock(DockPane dockPane, DockPos dockPos) {
-    dockImpl(dockPane);
+    dockPane.requireDockable(dockPos);
+    attach(dockPane);
     dockPane.dock(this, dockPos);
   }
 
-  private final void dockImpl(DockPane dockPane) {
+  /**
+   * Becomes a docked member of the pane (leaving any floating stage first) without touching the
+   * pane's tree; the pane's dock() and apply() place the node afterwards (druvu: was dockImpl).
+   */
+  final void attach(DockPane dockPane) {
     if (isFloating()) {
       setFloating(false);
     }
     this.dockPane = dockPane;
     this.dockedProperty.set(true);
+  }
+
+  /**
+   * Stops being a docked member without touching the pane's tree; the pane calls it when it
+   * rebuilds a layout that leaves this node out (druvu addition).
+   */
+  final void detach() {
+    this.dockedProperty.set(false);
   }
 
   /**

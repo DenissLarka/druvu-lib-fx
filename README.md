@@ -23,7 +23,7 @@ is opt-in. Nothing here requires implementing a toolkit interface to start an ap
 |----------|-----------------------------------------------------------------------------------------------|
 | `bus`    | In-app event bus with selectable delivery — caller, FX thread, async (`FxBus`)                |
 | `exec`   | Background task execution with lifecycle events (`FxExec`, `TaskEvent`)                       |
-| `dock`   | Docking layout, vendored from [DockFX](https://github.com/RobertBColton/DockFX) (MPL-2.0) and made Java 25 / jlink-clean — see [NOTICE.md](NOTICE.md) |
+| `dock`   | Docking layout, vendored from [DockFX](https://github.com/RobertBColton/DockFX) (MPL-2.0) and made Java 25 / jlink-clean — see [NOTICE.md](NOTICE.md); `DockLayout` + `DockLayoutPersistence` keep the workspace across runs and put a hidden panel back where it was |
 | `status` | Status-bar model (`StatusBarModel`)                                                           |
 | `auth`   | Self-contained sign-in control with a pluggable backend (`LoginPane`, `Authenticator`)        |
 | `prefs`  | Per-app home directory, properties-backed preferences, window-geometry persistence           |

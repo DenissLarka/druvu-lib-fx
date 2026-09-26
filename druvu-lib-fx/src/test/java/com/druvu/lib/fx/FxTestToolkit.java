@@ -60,6 +60,13 @@ public final class FxTestToolkit {
         }
     }
 
+    /** Runs a supplier on the FX thread and hands back its result; failures surface as test failures. */
+    public static <T> T call(java.util.function.Supplier<T> action) throws InterruptedException {
+        final AtomicReference<T> result = new AtomicReference<>();
+        runOnFx(() -> result.set(action.get()));
+        return result.get();
+    }
+
     /**
      * Puts the JVM back on the default stylesheet. The user agent stylesheet is process-global, so a test class that
      * applies a theme must undo it or every later FX test renders under whatever it left behind.

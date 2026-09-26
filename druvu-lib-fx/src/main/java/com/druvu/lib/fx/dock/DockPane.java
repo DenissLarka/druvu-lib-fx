@@ -16,12 +16,21 @@
 package com.druvu.lib.fx.dock;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.Stack;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.property.ReadOnlyIntegerProperty;
+import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
@@ -57,6 +66,17 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
    * The current root node of this dock pane's layout.
    */
   private Node root;
+
+  /**
+   * Where hidden nodes go back to, by id (druvu addition).
+   */
+  private final Map<String, DockLayout.Placement> hiddenPlacements =
+      new HashMap<String, DockLayout.Placement>();
+  /**
+   * Bumped on every change of the workspace shape (druvu addition).
+   */
+  private final ReadOnlyIntegerWrapper layoutRevision =
+      new ReadOnlyIntegerWrapper(this, "layoutRevision", 0);
 
   /**
    * Whether a DOCK_ENTER event has been received by this dock pane since the last DOCK_EXIT event
@@ -354,16 +374,20 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
    * @param sibling The sibling of this node in the layout.
    */
   public void dock(Node node, DockPos dockPos, Node sibling) {
-    DockNodeEventHandler dockNodeEventHandler = new DockNodeEventHandler(node);
-    dockNodeEventFilters.put(node, dockNodeEventHandler);
-    node.addEventFilter(DockEvent.DOCK_OVER, dockNodeEventHandler);
+    requireDockable(dockPos);
+    track(node);
 
     SplitPane split = (SplitPane) root;
-    if (split == null) {
-      split = new SplitPane();
+    if (split == null || split.getItems().isEmpty()) {
+      // An emptied root (everything undocked) takes the first node like a fresh pane does.
+      if (split == null) {
+        split = new SplitPane();
+        root = split;
+        this.getChildren().add(root);
+      }
       split.getItems().add(node);
-      root = split;
-      this.getChildren().add(root);
+      watchDividers();
+      layoutChanged();
       return;
     }
 
@@ -440,10 +464,10 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
       if (splitItems.size() > 1) {
         if (split.getOrientation() == Orientation.HORIZONTAL) {
           split.setDividerPosition(relativeIndex,
-              node.prefWidth(0) / (magnitude + node.prefWidth(0)));
+              share(node.prefWidth(0), magnitude));
         } else {
           split.setDividerPosition(relativeIndex,
-              node.prefHeight(0) / (magnitude + node.prefHeight(0)));
+              share(node.prefHeight(0), magnitude));
         }
       }
     } else if (dockPos == DockPos.RIGHT || dockPos == DockPos.BOTTOM) {
@@ -456,14 +480,16 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
       if (splitItems.size() > 1) {
         if (split.getOrientation() == Orientation.HORIZONTAL) {
           split.setDividerPosition(relativeIndex - 1,
-              1 - node.prefWidth(0) / (magnitude + node.prefWidth(0)));
+              1 - share(node.prefWidth(0), magnitude));
         } else {
           split.setDividerPosition(relativeIndex - 1,
-              1 - node.prefHeight(0) / (magnitude + node.prefHeight(0)));
+              1 - share(node.prefHeight(0), magnitude));
         }
       }
     }
 
+    watchDividers();
+    layoutChanged();
   }
 
   /**
@@ -484,9 +510,11 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
    * @param node The node that is to be removed from this dock pane.
    */
   public void undock(DockNode node) {
-    DockNodeEventHandler dockNodeEventHandler = dockNodeEventFilters.get(node);
-    node.removeEventFilter(DockEvent.DOCK_OVER, dockNodeEventHandler);
-    dockNodeEventFilters.remove(node);
+    rememberPlacement(node);
+    untrack(node);
+    if (root == null) {
+      return;
+    }
 
     // depth first search to find the parent of the node
     Stack<Parent> findStack = new Stack<Parent>();
@@ -532,12 +560,363 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
             }
           }
 
+          collapseSingleChildSplits();
+          watchDividers();
+          layoutChanged();
           return;
         } else if (children.get(i) instanceof Parent) {
           findStack.push((Parent) children.get(i));
         }
       }
     }
+  }
+
+
+  // ---------------------------------------------------------------------------------------------
+  // druvu additions (see NOTICE.md): the workspace as a value (DockLayout), where hidden nodes go
+  // back to, and one change signal for a persistence layer to listen to.
+  // ---------------------------------------------------------------------------------------------
+
+  /**
+   * Shares smaller than this are noise from a divider that has not been laid out yet.
+   */
+  private static final double MIN_SHARE = 0.001;
+
+  /**
+   * The workspace as a value: every docked node by its JavaFX id, in the tree of splits that lays
+   * them out, with the dividers as shares. A split with a single child is not part of the value.
+   *
+   * @return the layout, or empty when nothing is docked
+   * @throws IllegalStateException when a docked node has no id
+   */
+  public Optional<DockLayout> dockLayout() {
+    if (root == null || ((SplitPane) root).getItems().isEmpty()) {
+      return Optional.empty();
+    }
+    for (DockNode node : dockedNodes()) {
+      if (!hasId(node)) {
+        throw new IllegalStateException("dock node '" + node.getTitle()
+            + "' has no id - setId(...) before taking layouts");
+      }
+    }
+    return Optional.of(snapshot(root));
+  }
+
+  /**
+   * Rebuilds the workspace from a layout. Leaves are matched to {@code nodes} by id: a leaf with
+   * no matching node is left out, a node absent from the layout ends up undocked (hidden), and a
+   * floating node the layout names is brought back in. The nodes keep their identity and state;
+   * only the splits around them are built anew.
+   *
+   * @throws IllegalArgumentException when two of the nodes share an id
+   */
+  public void apply(DockLayout layout, Collection<? extends DockNode> nodes) {
+    final Map<String, DockNode> byId = new HashMap<String, DockNode>();
+    for (DockNode node : nodes) {
+      if (hasId(node) && byId.put(node.getId(), node) != null) {
+        throw new IllegalArgumentException("two dock nodes share the id " + node.getId());
+      }
+    }
+    DockLayout usable = layout;
+    for (String id : layout.ids()) {
+      if (usable != null && !byId.containsKey(id)) {
+        usable = usable.remove(id).orElse(null);
+      }
+    }
+
+    final Set<DockNode> before = dockedNodes();
+    final Set<DockNode> after = new LinkedHashSet<DockNode>();
+    if (usable != null) {
+      for (String id : usable.ids()) {
+        after.add(byId.get(id));
+      }
+    }
+    clearTree();
+    for (DockNode node : before) {
+      if (!after.contains(node)) {
+        untrack(node);
+        node.detach();
+      }
+    }
+    for (DockNode node : after) {
+      if (!before.contains(node)) {
+        track(node);
+      }
+      node.attach(this);
+    }
+    if (usable != null) {
+      root = build(usable, byId);
+      this.getChildren().add(root);
+    }
+    watchDividers();
+    layoutChanged();
+  }
+
+  /**
+   * Docks a hidden node back where it was: beside the neighbours it sat next to, with its old
+   * share, as remembered when it left or as told by {@link #rememberPlacement}. Falls back to
+   * docking on {@code side} of the whole workspace when nothing it sat next to is docked any more,
+   * or when nothing is remembered.
+   *
+   * @throws IllegalStateException when the node is docked already
+   */
+  public void redock(DockNode node, DockPos side) {
+    if (node.isDocked()) {
+      throw new IllegalStateException("already docked: " + node.getTitle());
+    }
+    final DockLayout.Placement placement =
+        hasId(node) ? hiddenPlacements.get(node.getId()) : null;
+    final Optional<DockLayout> current = placement == null ? Optional.empty() : dockLayout();
+    if (current.isPresent()) {
+      final Optional<DockLayout> grown = current.get().insert(node.getId(), placement);
+      if (grown.isPresent()) {
+        final Set<DockNode> nodes = dockedNodes();
+        nodes.add(node);
+        apply(grown.get(), nodes);
+        return;
+      }
+    }
+    node.dock(this, side);
+  }
+
+  /**
+   * Where hidden nodes go back to, by id: what a persistence layer keeps between runs.
+   */
+  public Map<String, DockLayout.Placement> hiddenPlacements() {
+    return Collections.unmodifiableMap(hiddenPlacements);
+  }
+
+  /**
+   * Tells the pane where a hidden node belongs - typically what {@link #hiddenPlacements()} said
+   * in an earlier run. Forgotten again the moment the node docks.
+   */
+  public void rememberPlacement(String id, DockLayout.Placement placement) {
+    DockLayoutText.requireId(id);
+    hiddenPlacements.put(id, java.util.Objects.requireNonNull(placement, "placement"));
+  }
+
+  /**
+   * Bumped on every change of the workspace shape - dock, undock, apply, and every divider move -
+   * so a persistence layer listens here once instead of watching the tree.
+   */
+  public ReadOnlyIntegerProperty layoutRevisionProperty() {
+    return layoutRevision.getReadOnlyProperty();
+  }
+
+  /**
+   * CENTER only means something for the first node in an empty pane; upstream silently dropped
+   * the node otherwise (registered, marked docked, never laid out).
+   */
+  void requireDockable(DockPos dockPos) {
+    if (dockPos == DockPos.CENTER && root != null && !((SplitPane) root).getItems().isEmpty()) {
+      throw new IllegalArgumentException(
+          "CENTER only docks into an empty pane; use LEFT, RIGHT, TOP or BOTTOM");
+    }
+  }
+
+  private void track(Node node) {
+    final DockNodeEventHandler handler = new DockNodeEventHandler(node);
+    dockNodeEventFilters.put(node, handler);
+    node.addEventFilter(DockEvent.DOCK_OVER, handler);
+    if (node instanceof DockNode dockNode && hasId(dockNode)) {
+      hiddenPlacements.remove(dockNode.getId());
+    }
+  }
+
+  private void untrack(Node node) {
+    final DockNodeEventHandler handler = dockNodeEventFilters.remove(node);
+    if (handler != null) {
+      node.removeEventFilter(DockEvent.DOCK_OVER, handler);
+    }
+  }
+
+  /**
+   * Before a node leaves: where it sat, so redock() can put it back. Only possible while every
+   * docked node has an id; an app that never set ids simply gets no memory.
+   */
+  private void rememberPlacement(DockNode node) {
+    if (!hasId(node) || root == null) {
+      return;
+    }
+    final Set<DockNode> docked = dockedNodes();
+    if (!docked.contains(node)) {
+      return;
+    }
+    for (DockNode each : docked) {
+      if (!hasId(each)) {
+        return;
+      }
+    }
+    snapshot(root).placementOf(node.getId())
+        .ifPresent(placement -> hiddenPlacements.put(node.getId(), placement));
+  }
+
+  private static boolean hasId(DockNode node) {
+    return node.getId() != null && !node.getId().isBlank();
+  }
+
+  private Set<DockNode> dockedNodes() {
+    final Set<DockNode> nodes = new LinkedHashSet<DockNode>();
+    if (root != null) {
+      collectDockNodes(root, nodes);
+    }
+    return nodes;
+  }
+
+  private static void collectDockNodes(Node node, Set<DockNode> into) {
+    if (node instanceof SplitPane split) {
+      for (Node item : split.getItems()) {
+        collectDockNodes(item, into);
+      }
+    } else if (node instanceof DockNode dockNode) {
+      into.add(dockNode);
+    }
+  }
+
+  /**
+   * The tree as a value; the caller has checked that every DockNode in it has an id.
+   */
+  private static DockLayout snapshot(Node node) {
+    if (node instanceof SplitPane split) {
+      final List<Node> items = split.getItems();
+      if (items.size() == 1) {
+        return snapshot(items.get(0));
+      }
+      final double[] dividers = SplitShares.positions(split);
+      final List<DockLayout.Entry> entries = new ArrayList<DockLayout.Entry>();
+      double previous = 0;
+      for (int i = 0; i < items.size(); i++) {
+        final double next = i < dividers.length ? dividers[i] : 1;
+        final double share = next - previous;
+        // NaN (a divider never laid out) and negatives count as unknown: equal shares fall out.
+        entries.add(new DockLayout.Entry(snapshot(items.get(i)), share > MIN_SHARE ? share : MIN_SHARE));
+        previous = next;
+      }
+      return new DockLayout.Split(split.getOrientation(), entries);
+    }
+    if (node instanceof DockNode dockNode) {
+      return new DockLayout.Leaf(dockNode.getId());
+    }
+    throw new IllegalStateException("not a dock node: " + node);
+  }
+
+  /**
+   * The tree for a layout; the root is always a SplitPane because dock() relies on that.
+   */
+  private static SplitPane build(DockLayout layout, Map<String, DockNode> byId) {
+    if (layout instanceof DockLayout.Split split) {
+      return buildSplit(split, byId);
+    }
+    final SplitPane single = new SplitPane();
+    single.getItems().add(byId.get(((DockLayout.Leaf) layout).id()));
+    return single;
+  }
+
+  private static SplitPane buildSplit(DockLayout.Split split, Map<String, DockNode> byId) {
+    final SplitPane pane = new SplitPane();
+    pane.setOrientation(split.orientation());
+    final double[] positions = new double[split.entries().size() - 1];
+    double running = 0;
+    for (int i = 0; i < split.entries().size(); i++) {
+      final DockLayout.Entry entry = split.entries().get(i);
+      if (entry.child() instanceof DockLayout.Split inner) {
+        pane.getItems().add(buildSplit(inner, byId));
+      } else {
+        pane.getItems().add(byId.get(((DockLayout.Leaf) entry.child()).id()));
+      }
+      if (i < positions.length) {
+        running += entry.share();
+        positions[i] = running;
+      }
+    }
+    pane.setDividerPositions(positions);
+    return pane;
+  }
+
+  private void clearTree() {
+    if (root == null) {
+      return;
+    }
+    clearItems(root);
+    this.getChildren().remove(root);
+    root = null;
+  }
+
+  private static void clearItems(Node node) {
+    if (node instanceof SplitPane split) {
+      for (Node item : new ArrayList<Node>(split.getItems())) {
+        clearItems(item);
+      }
+      split.getItems().clear();
+    }
+  }
+
+  /**
+   * Upstream's undock left every emptied wrapper behind: each hide/show cycle added one nesting
+   * level (a SplitPane with a single child) and the tree grew without bound. Fold them away,
+   * keeping the divider positions of the split around each folded wrapper.
+   */
+  private void collapseSingleChildSplits() {
+    if (root == null) {
+      return;
+    }
+    final SplitPane rootSplit = (SplitPane) root;
+    collapseUnder(rootSplit);
+    // The root stays a SplitPane (dock() relies on it), but a lone nested split can take its place.
+    if (rootSplit.getItems().size() == 1 && rootSplit.getItems().get(0) instanceof SplitPane inner) {
+      rootSplit.getItems().clear();
+      this.getChildren().set(this.getChildren().indexOf(rootSplit), inner);
+      root = inner;
+    }
+  }
+
+  private static void collapseUnder(SplitPane split) {
+    final ObservableList<Node> items = split.getItems();
+    for (int i = 0; i < items.size(); i++) {
+      if (items.get(i) instanceof SplitPane child) {
+        collapseUnder(child);
+        if (child.getItems().size() == 1) {
+          final Node grandchild = child.getItems().get(0);
+          final double[] positions = split.getDividerPositions();
+          child.getItems().clear();
+          items.set(i, grandchild);
+          split.setDividerPositions(positions);
+        }
+      }
+    }
+  }
+
+  private void watchDividers() {
+    if (root != null) {
+      watchDividersUnder(root);
+    }
+  }
+
+  /**
+   * Every split gets a SplitShares keeper: dividers hold their shares across resizes, and a moved
+   * divider reports here as a layout change.
+   */
+  private void watchDividersUnder(Node node) {
+    if (!(node instanceof SplitPane split)) {
+      return;
+    }
+    SplitShares.attach(split, this::layoutChanged);
+    for (Node item : split.getItems()) {
+      watchDividersUnder(item);
+    }
+  }
+
+  private void layoutChanged() {
+    layoutRevision.set(layoutRevision.get() + 1);
+  }
+
+  /**
+   * The new node's share of a split, by preferred size. Upstream divided by zero here - a NaN
+   * divider whenever nothing had a preferred size yet - so an unsized pair now splits in half.
+   */
+  private static double share(double preferred, double magnitude) {
+    final double total = magnitude + preferred;
+    return total > 0 ? preferred / total : 0.5;
   }
 
   @Override

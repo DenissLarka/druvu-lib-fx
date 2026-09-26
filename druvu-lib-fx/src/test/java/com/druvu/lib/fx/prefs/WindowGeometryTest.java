@@ -58,4 +58,47 @@ public class WindowGeometryTest {
         Files.deleteIfExists(file);
         assertThat(restored.get()).containsExactly(150, 160, 640, 480);
     }
+
+    /**
+     * Platform.exit() - the Quit menu item, Cmd+Q on macOS - never hides the stage, so a save that waits for the hide
+     * loses the window on every quit but the close button (measured on JavaFX 25). The geometry must reach the file
+     * while the stage is still showing: move it, wait out the debounce, read the file back before any hide.
+     */
+    @Test
+    public void savesWhileStillShowing() throws IOException, InterruptedException {
+        final Path file = Files.createTempFile("druvu-window", ".properties");
+        Files.delete(file);
+        final Prefs prefs = new Prefs(file);
+        final AtomicReference<Stage> shown = new AtomicReference<>();
+        final CountDownLatch moved = new CountDownLatch(1);
+
+        Platform.runLater(() -> {
+            final Stage stage = new Stage();
+            stage.setWidth(320);
+            stage.setHeight(240);
+            WindowGeometry.install(stage, prefs, "window");
+            stage.show();
+            stage.setX(210);
+            stage.setY(140);
+            shown.set(stage);
+            moved.countDown();
+        });
+        assertThat(moved.await(10, TimeUnit.SECONDS)).isTrue();
+
+        try {
+            // A fresh Prefs reads the file the way the next run of the app would; poll past the debounce.
+            final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (new Prefs(file).getDouble("window.x", -1) != 210 && System.nanoTime() < deadline) {
+                Thread.sleep(50);
+            }
+            final Prefs reread = new Prefs(file);
+            assertThat(reread.getDouble("window.x", -1)).isEqualTo(210);
+            assertThat(reread.getDouble("window.y", -1)).isEqualTo(140);
+            assertThat(reread.getDouble("window.width", -1)).isEqualTo(320);
+            assertThat(reread.getDouble("window.height", -1)).isEqualTo(240);
+        } finally {
+            Platform.runLater(() -> shown.get().hide());
+            Files.deleteIfExists(file);
+        }
+    }
 }
