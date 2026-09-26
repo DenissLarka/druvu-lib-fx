@@ -51,4 +51,22 @@ public class PrefsTest {
             Files.deleteIfExists(file);
         }
     }
+
+    @Test
+    public void keysAreASnapshotSafeToRemoveFrom() throws IOException {
+        final Path file = Files.createTempFile("druvu-prefs", ".properties");
+        try {
+            final Prefs prefs = new Prefs(file);
+            prefs.put("profiles.a.name", "A");
+            prefs.put("profiles.a.provider", "simulation");
+            prefs.put("theme", "DRACULA");
+
+            prefs.keys().stream().filter(key -> key.startsWith("profiles.a.")).forEach(prefs::remove);
+
+            assertThat(prefs.keys()).containsExactly("theme");
+            assertThat(new Prefs(file).keys()).containsExactly("theme");
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
 }

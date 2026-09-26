@@ -75,6 +75,31 @@ public class FxExecTest {
         assertThat(((TaskEvent.Failed) events.get(1)).error()).isSameAs(boom);
     }
 
+    /**
+     * An Error thrown by the work - a class missing from the module path, an assertion - must fail the task like any
+     * exception. Caught as Exception only, it escaped to the thread's uncaught handler and left the future pending and
+     * the task never ended (letterblade finding: a status bar stuck at one running task, no toast).
+     */
+    @Test
+    public void testErrorFailsTheTaskInsteadOfLeavingItPending() throws InterruptedException {
+        final FxBus bus = new FxBus();
+        final List<TaskEvent> events = new CopyOnWriteArrayList<>();
+        final NoClassDefFoundError missing = new NoClassDefFoundError("com/example/Missing");
+        try (Subscription sub = bus.subscribe(TaskEvent.class, Delivery.CALLER, events::add);
+                FxExec exec = new FxExec(bus)) {
+            assertThat(sub).isNotNull();
+            final CompletableFuture<Void> future = exec.run("load", () -> {
+                throw missing;
+            });
+            assertThatThrownBy(() -> future.get(10, TimeUnit.SECONDS))
+                    .isInstanceOf(ExecutionException.class)
+                    .hasCause(missing);
+        }
+        assertThat(events).hasSize(2);
+        assertThat(events.get(1)).isInstanceOf(TaskEvent.Failed.class);
+        assertThat(((TaskEvent.Failed) events.get(1)).error()).isSameAs(missing);
+    }
+
     @Test
     public void testContinuationHopsToFxThreadViaFxExecutor() throws Exception {
         try (FxExec exec = new FxExec()) {

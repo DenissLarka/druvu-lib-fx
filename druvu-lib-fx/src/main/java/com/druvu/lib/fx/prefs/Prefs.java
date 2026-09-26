@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * A small, human-editable key/value preference store backed by a {@code .properties} file - the same plain-text spirit
@@ -70,6 +71,11 @@ public final class Prefs {
 
     public boolean contains(String key) {
         return properties.containsKey(key);
+    }
+
+    /** @return every stored key, as a snapshot - removing keys while iterating it is safe */
+    public Set<String> keys() {
+        return properties.stringPropertyNames();
     }
 
     public void remove(String key) {

@@ -6,6 +6,7 @@ import com.druvu.lib.fx.FxTestToolkit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,6 +99,55 @@ public class WindowGeometryTest {
             assertThat(reread.getDouble("window.height", -1)).isEqualTo(240);
         } finally {
             Platform.runLater(() -> shown.get().hide());
+            Files.deleteIfExists(file);
+        }
+    }
+
+    /**
+     * A JavaFX Dialog centres its window before every show ({@code HeavyweightDialog.show}); the saved position must
+     * still win. The test does what the dialog does - centerOnScreen, then show - for a first and a second opening.
+     */
+    @Test
+    public void savedPositionSurvivesACentreBeforeEachShow() throws IOException, InterruptedException {
+        final Path file = Files.createTempFile("druvu-window", ".properties");
+        Files.write(file, List.of("dialog.x=210", "dialog.y=180", "dialog.width=400", "dialog.height=300"));
+        try {
+            final double[][] positions = FxTestToolkit.call(() -> {
+                final Stage stage = new Stage();
+                WindowGeometry.install(stage, new Prefs(file), "dialog");
+                stage.centerOnScreen();
+                stage.show();
+                final double[] first = {stage.getX(), stage.getY()};
+                stage.hide();
+                stage.centerOnScreen();
+                stage.show();
+                final double[] second = {stage.getX(), stage.getY()};
+                stage.hide();
+                return new double[][] {first, second};
+            });
+            assertThat(positions[0]).containsExactly(210, 180);
+            assertThat(positions[1]).containsExactly(210, 180);
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    /** A monitor unplugged since the save: its position lies on no screen, so it is not applied - the size still is. */
+    @Test
+    public void positionOnNoScreenIsNotRestored() throws IOException, InterruptedException {
+        final Path file = Files.createTempFile("druvu-window", ".properties");
+        Files.write(file, List.of("window.x=100000", "window.y=100000", "window.width=400", "window.height=300"));
+        try {
+            final double[] restored = FxTestToolkit.call(() -> {
+                final Stage stage = new Stage();
+                WindowGeometry.restore(stage, new Prefs(file), "window");
+                return new double[] {stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight()};
+            });
+            assertThat(restored[0]).isNaN();
+            assertThat(restored[1]).isNaN();
+            assertThat(restored[2]).isEqualTo(400);
+            assertThat(restored[3]).isEqualTo(300);
+        } finally {
             Files.deleteIfExists(file);
         }
     }

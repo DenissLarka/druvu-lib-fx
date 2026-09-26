@@ -3,7 +3,9 @@ package com.druvu.lib.fx.prefs;
 import com.druvu.lib.fx.util.Debounce;
 import java.util.Objects;
 import javafx.beans.InvalidationListener;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 
 /**
@@ -14,6 +16,11 @@ import javafx.util.Duration;
  * more when the stage is hidden. Saving on hide alone is not enough: {@link javafx.application.Platform#exit()} - the
  * usual Quit menu item, and Cmd+Q on macOS - shuts the toolkit down without ever hiding the stage, so an app that quit
  * that way never remembered its window (measured on JavaFX 25; only the window's close button hides).
+ *
+ * <p>The saved geometry is applied again each time the stage is about to show: a JavaFX
+ * {@link javafx.scene.control.Dialog} centres its window before every show ({@code HeavyweightDialog.show} calls
+ * {@code centerOnScreen}), which would otherwise discard the restored position (measured on JavaFX 25). A saved
+ * position that lies on no screen - a monitor since unplugged - is not applied, so the window never opens out of reach.
  *
  * <p>Keys are written under a prefix (default {@code "window"}), so one {@code Prefs} can remember several windows by
  * giving each a distinct prefix.
@@ -38,6 +45,8 @@ public final class WindowGeometry {
         Objects.requireNonNull(prefs, "prefs");
         Objects.requireNonNull(prefix, "prefix");
         restore(stage, prefs, prefix);
+        // WINDOW_SHOWING fires inside show(), after a dialog's centerOnScreen and before the window appears.
+        stage.addEventHandler(WindowEvent.WINDOW_SHOWING, event -> restore(stage, prefs, prefix));
 
         final Debounce pendingSave = new Debounce(SAVE_DELAY, () -> save(stage, prefs, prefix));
         final InvalidationListener geometryChanged = observable -> {
@@ -62,11 +71,17 @@ public final class WindowGeometry {
 
     static void restore(Stage stage, Prefs prefs, String prefix) {
         if (prefs.contains(prefix + ".width") && prefs.contains(prefix + ".height")) {
-            stage.setWidth(prefs.getDouble(prefix + ".width", stage.getWidth()));
-            stage.setHeight(prefs.getDouble(prefix + ".height", stage.getHeight()));
+            final double width = prefs.getDouble(prefix + ".width", stage.getWidth());
+            final double height = prefs.getDouble(prefix + ".height", stage.getHeight());
+            stage.setWidth(width);
+            stage.setHeight(height);
             if (prefs.contains(prefix + ".x") && prefs.contains(prefix + ".y")) {
-                stage.setX(prefs.getDouble(prefix + ".x", 0));
-                stage.setY(prefs.getDouble(prefix + ".y", 0));
+                final double x = prefs.getDouble(prefix + ".x", 0);
+                final double y = prefs.getDouble(prefix + ".y", 0);
+                if (!Screen.getScreensForRectangle(x, y, width, height).isEmpty()) {
+                    stage.setX(x);
+                    stage.setY(y);
+                }
             }
         }
         stage.setMaximized(prefs.getBoolean(prefix + ".maximized", false));

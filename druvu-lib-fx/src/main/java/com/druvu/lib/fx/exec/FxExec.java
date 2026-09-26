@@ -18,6 +18,10 @@ import lombok.extern.slf4j.Slf4j;
  * <p>Threading contract: {@code supply}/{@code run} may be called from any thread (typically the FX thread) and never
  * block; the work runs on a fresh virtual thread. To continue on the FX thread, compose the returned future with
  * {@code .thenAcceptAsync(v -> ..., FxThreads.fxExecutor())}.
+ *
+ * <p>Whatever the work throws fails the task - an {@link Error} too, the way {@code CompletableFuture.supplyAsync}
+ * treats it. Caught as {@code Exception} only, an Error escaped to the thread's uncaught handler and left the future
+ * pending forever.
  */
 @Slf4j
 public final class FxExec implements AutoCloseable {
@@ -40,7 +44,7 @@ public final class FxExec implements AutoCloseable {
     /**
      * Runs value-returning work on a virtual thread.
      *
-     * @return future completed with the result, or exceptionally with the work's exception
+     * @return future completed with the result, or exceptionally with whatever the work threw
      * @throws java.util.concurrent.RejectedExecutionException when called after {@link #close()}
      */
     public <T> CompletableFuture<T> supply(String title, Callable<T> work) {
@@ -55,10 +59,10 @@ public final class FxExec implements AutoCloseable {
                 final T value = work.call();
                 events.accept(new TaskEvent.Finished(id, title, elapsed(startNanos)));
                 future.complete(value);
-            } catch (Exception ex) {
-                log.error("Task '{}' failed", title, ex);
-                events.accept(new TaskEvent.Failed(id, title, ex, elapsed(startNanos)));
-                future.completeExceptionally(ex);
+            } catch (Exception | Error failure) {
+                log.error("Task '{}' failed", title, failure);
+                events.accept(new TaskEvent.Failed(id, title, failure, elapsed(startNanos)));
+                future.completeExceptionally(failure);
             }
         });
         return future;
