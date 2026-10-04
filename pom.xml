@@ -40,7 +40,7 @@
 		     visually (src/main/scss compiles against this same atlantafx-styles version; no test sees a look change). -->
 		<atlantafx.version>3.0.0</atlantafx.version>
 		<lombok.version>1.18.48</lombok.version>
-		<slf4j.version>2.0.19</slf4j.version>
+		<slf4j.version>2.0.20</slf4j.version>
 		<testng.version>7.12.0</testng.version>
 		<assertj.version>3.27.7</assertj.version>
 
