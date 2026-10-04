@@ -5,6 +5,8 @@ import com.druvu.lib.fx.auth.LoginPane;
 import com.druvu.lib.fx.bus.Delivery;
 import com.druvu.lib.fx.bus.FxBus;
 import com.druvu.lib.fx.bus.Subscription;
+import com.druvu.lib.fx.dock.DockLayout;
+import com.druvu.lib.fx.dock.DockLayoutPersistence;
 import com.druvu.lib.fx.dock.DockNode;
 import com.druvu.lib.fx.dock.DockPane;
 import com.druvu.lib.fx.dock.DockPos;
@@ -64,8 +66,11 @@ import javafx.stage.Stage;
  * vendored dock, the {@link LoginPane} and the {@link StatusBarModel}. It opens on a login screen (demo / demo); a
  * successful sign-in swaps the scene root to the docking workspace. Pages demonstrate both styles: code-first
  * (Dashboard, Tasks) and FXML (Instruments). The top toolbar carries one icon toggle per dock panel: pressing it shows
- * the panel (re-docks it), releasing it hides the panel (undocks it); the toggle also follows the panel's own close
- * button.
+ * the panel again where it was, releasing it hides the panel; the toggle also follows the panel's own close button.
+ *
+ * <p>The app remembers itself between launches, all in {@code ~/.druvu.com/market-watch/preferences.properties}: the
+ * window's position and size ({@link WindowGeometry}), the dock workspace - splits, divider positions, hidden panels
+ * ({@link DockLayoutPersistence}) - and the theme ({@link ThemeManager}).
  */
 public final class MarketWatchApp extends Application {
 
@@ -73,6 +78,13 @@ public final class MarketWatchApp extends Application {
     private static final Color ICON_STROKE = Color.web("#4147d5"); // two-tone glyph outline
     private static final double ICON_SCALE = 1.83; // glyphs use a 14px viewBox
     private static final double TOGGLE_SIZE = 48;
+
+    /**
+     * The fresh-install workspace as a value: Dashboard beside Instruments, Tasks below. A layout saved by an earlier
+     * run takes over right after it is applied (see {@link #buildDockLayout}).
+     */
+    private static final DockLayout DEFAULT_LAYOUT =
+            DockLayout.parse("V{0.700 H{0.600 dashboard,0.400 instruments},0.300 tasks}");
 
     private final FxBus bus = new FxBus();
     private final FxExec exec = new FxExec(bus);
@@ -133,7 +145,7 @@ public final class MarketWatchApp extends Application {
         // The desktop hooks were registered in main(); hand them a live app to talk to.
         RUNNING.set(this);
 
-        // Restore the window's saved position/size (and save it again when the app closes).
+        // Restore the window's saved position/size; the kit saves it again on every move or resize.
         WindowGeometry.install(stage, prefs);
         stage.show();
     }
@@ -216,23 +228,28 @@ public final class MarketWatchApp extends Application {
     }
 
     /**
-     * Docks the panels. The show position of each panel is deliberately a side (never CENTER): {@link DockPane#dock}
-     * only honours CENTER as the very first dock, so a panel that is toggled off and back on re-docks to a side to
-     * avoid being silently dropped.
+     * Docks the panels: the declared {@link #DEFAULT_LAYOUT} first, then whatever an earlier run saved takes over.
+     * {@link DockLayoutPersistence} keeps the whole workspace in the app's preferences under {@code dock.*}, saving
+     * every change (debounced, so a divider drag costs one write). Panels are matched by their JavaFX ids, set in
+     * {@link Panel}.
      */
     private void buildDockLayout() {
         // Each panel gets a two-tone SVG glyph (14px viewBox) in the toolbar.
-        panels.add(new Panel("Dashboard", new DashboardPage(bus).node(), DockPos.LEFT, MarketWatchApp::dashboardIcon));
-        panels.add(new Panel("Instruments", loadInstrumentsPage(), DockPos.RIGHT, MarketWatchApp::instrumentsIcon));
         panels.add(new Panel(
-                "Tasks", new TasksPage(bus, exec, notifications).node(), DockPos.BOTTOM, MarketWatchApp::tasksIcon));
+                "dashboard", "Dashboard", new DashboardPage(bus).node(), DockPos.LEFT, MarketWatchApp::dashboardIcon));
+        panels.add(new Panel(
+                "instruments", "Instruments", loadInstrumentsPage(), DockPos.RIGHT, MarketWatchApp::instrumentsIcon));
+        panels.add(new Panel(
+                "tasks",
+                "Tasks",
+                new TasksPage(bus, exec, notifications).node(),
+                DockPos.BOTTOM,
+                MarketWatchApp::tasksIcon));
 
-        // Dashboard is docked FIRST, so CENTER is valid; the rest go to their sides.
-        panels.get(0).node.dock(dockPane, DockPos.CENTER);
-        for (int i = 1; i < panels.size(); i++) {
-            final Panel panel = panels.get(i);
-            panel.node.dock(dockPane, panel.showPos);
-        }
+        // The fresh-install layout; the saved one, if any, takes over right below.
+        final List<DockNode> nodes = panels.stream().map(panel -> panel.node).toList();
+        dockPane.apply(DEFAULT_LAYOUT, nodes);
+        DockLayoutPersistence.install(dockPane, prefs, nodes);
     }
 
     private ToolBar buildToolbar() {
@@ -302,12 +319,14 @@ public final class MarketWatchApp extends Application {
         toggle.setOnAction(e -> {
             if (toggle.isSelected()) {
                 if (!panel.node.isDocked()) {
-                    // If it was dragged out to float, dispose that window first, so we re-dock the
-                    // node cleanly instead of leaving an empty floating stage.
+                    // If it was dragged out to float, dispose that window first, so it re-docks cleanly
+                    // instead of leaving an empty floating stage.
                     if (panel.node.isFloating()) {
                         panel.node.close();
                     }
-                    panel.node.dock(dockPane, panel.showPos);
+                    // Back where it was, beside its old neighbours with its old share; the panel's own
+                    // side only when none of them is docked any more.
+                    dockPane.redock(panel.node, panel.showPos);
                 }
             } else if (panel.node.isDocked()) {
                 panel.node.close();
@@ -405,16 +424,22 @@ public final class MarketWatchApp extends Application {
         }
     }
 
-    /** A dock panel plus the side it re-docks to when shown (never CENTER) and its toolbar glyph. */
+    /**
+     * A dock panel: the id its place is saved under, its title, the side it goes back to when none of its old
+     * neighbours is docked any more, and its toolbar glyph.
+     */
     private static final class Panel {
         private final String title;
         private final DockNode node;
         private final DockPos showPos;
         private final Supplier<Node> iconFactory;
 
-        Panel(String title, Node content, DockPos showPos, Supplier<Node> iconFactory) {
+        Panel(String id, String title, Node content, DockPos showPos, Supplier<Node> iconFactory) {
             this.title = title;
             this.node = new DockNode(content, title);
+            // The key the kit files this panel's place under (dock.* in the preferences); never rename it lightly,
+            // or a saved workspace loses the panel.
+            this.node.setId(id);
             this.showPos = showPos;
             this.iconFactory = iconFactory;
         }

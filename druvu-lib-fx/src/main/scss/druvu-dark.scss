@@ -133,6 +133,30 @@
   $color-cell-bg-selected-focused: -color-accent-subtle
 );
 
+// Hover / selected fills, configured the way AtlantaFX's Dracula does it. The dark defaults tint with base-7 (hover) and
+// base-6 (selected) - and here base-7 IS canvas-default, base-6 IS canvas-subtle, so a hovered menu or list item and an
+// active toolbar toggle painted exactly the surface they sit on (user-found 2026-10-04 against Dracula). Validated with
+// the ramps contrast function: #3e4251 (base-6/base-5 midpoint) vs the toolbar 1.37, fg-default on it 7.36; base-5 vs
+// the toolbar 1.93, fg-default on it 5.22 (Dracula: 1.41 / 1.94, text 5.04); indigo + white = the button pair (6.8:1);
+// a chosen list item = the table-selection wash (fg-default 7.3:1).
+@forward "components/toolbar" as toolbar-* with (
+  $color-bg-hover: #3e4251,
+  $color-bg-selected: scale.$base-5
+);
+@forward "components/menu" as menu-* with (
+  $color-menubar-bg-hover: #3e4251,
+  $color-menuitem-bg-hover: -color-accent-emphasis,
+  $color-menuitem-fg-hover: -color-fg-emphasis
+);
+@forward "components/combo-box" as combo-box-* with (
+  $color-list-bg-hover: -color-accent-emphasis,
+  $color-list-fg-hover: -color-fg-emphasis,
+  $color-list-bg-selected: -color-accent-subtle
+);
+@forward "components/spinner" as spinner-* with (
+  $color-button-hover: -color-accent-muted
+);
+
 @use "components";
 
 // Modena-variable compatibility for third-party controls (see the partial for the story)

@@ -25,6 +25,10 @@ import org.slf4j.LoggerFactory;
  * <p>{@link #currentProperty()} lets toolkit widgets and app code follow theme changes; {@link FxTheme#isDark()} on the
  * current value is the cue for anything that paints its own colours.
  *
+ * <p>Not to be confused with {@code atlantafx.base.theme.ThemeManager}, which AtlantaFX 3 added: a singleton over
+ * AtlantaFX's own {@code Theme} objects that shares this class's simple name on an app's compile path (this module
+ * re-exports {@code atlantafx.base}). Druvu apps use this class, which speaks {@link FxTheme} and {@link Prefs}.
+ *
  * <p>FX thread only.
  */
 public final class ThemeManager {

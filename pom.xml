@@ -36,7 +36,9 @@
 		     There are deliberately NO org.openjfx dependencies - apps ship their JDK via the
 		     druvu install pipeline, so the fx modules are version-locked to the JDK. -->
 
-		<atlantafx.version>2.1.0</atlantafx.version>
+		<!-- AtlantaFX 3.x needs JavaFX 27+ - the JDK's, see java.version. Any bump: re-check the druvu themes
+		     visually (src/main/scss compiles against this same atlantafx-styles version; no test sees a look change). -->
+		<atlantafx.version>3.0.0</atlantafx.version>
 		<lombok.version>1.18.48</lombok.version>
 		<slf4j.version>2.0.19</slf4j.version>
 		<testng.version>7.12.0</testng.version>
