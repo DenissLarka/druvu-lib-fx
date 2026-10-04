@@ -18,7 +18,19 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.version>25</java.version>
+		<!-- Java 27 (user decision 2026-10-04): the FX layer moves to JDK 27 / JavaFX 27, which AtlantaFX 3
+		     requires; non-FX druvu libs stay on 25. A JavaFX project has to compile at its own JDK's level:
+		     on a newer JDK, release 25 hides the JDK-bundled JavaFX ("module not found: javafx.controls").
+		     The enforcer's requireJavaVersion below refuses an older JDK. -->
+		<java.version>27</java.version>
+
+		<!-- Spotless (palantir) is OFF while the toolkit builds on JDK 27: palantir-java-format crashes there
+		     (NoSuchFieldError on JCCompilationUnit.endPositions, every release through 2.101.0 -
+		     https://github.com/palantir/palantir-java-format/issues/1785, fix in PR #1786). To re-enable:
+		     delete this property and bump palantir-java-format.version by hand to a release that supports
+		     JDK 27 (Renovate does not track it). Until then, format on JDK 25: Use-Jdk25.ps1, then
+		     mvn spotless:apply - the goal alone, which needs no compile. -->
+		<spotless.check.skip>true</spotless.check.skip>
 
 		<!-- JavaFX comes from the JDK: build with a JavaFX-bundled JDK (e.g. Azul Zulu FX).
 		     There are deliberately NO org.openjfx dependencies - apps ship their JDK via the

@@ -3,7 +3,7 @@
 [![CI](https://github.com/DenissLarka/druvu-lib-fx/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DenissLarka/druvu-lib-fx/actions/workflows/ci.yml)
 [![Maven GitHub Publish](https://github.com/DenissLarka/druvu-lib-fx/actions/workflows/maven-github-publish.yml/badge.svg)](https://github.com/DenissLarka/druvu-lib-fx/actions/workflows/maven-github-publish.yml)
 [![Release](https://img.shields.io/github/v/release/DenissLarka/druvu-lib-fx?label=GitHub%20Packages&color=blue)](https://github.com/DenissLarka/druvu-lib-fx/packages)
-![Java](https://img.shields.io/badge/Java-25%20(FX)-blue)
+![Java](https://img.shields.io/badge/Java-27%20(FX)-blue)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 JavaFX application toolkit for [druvu](https://druvu.com) desktop apps — **a library, not a
@@ -34,7 +34,7 @@ is opt-in. Nothing here requires implementing a toolkit interface to start an ap
 
 ## Build
 
-Requires **JDK 25 with JavaFX bundled** (e.g. Azul Zulu FX). JavaFX modules come from the JDK —
+Requires **JDK 27 with JavaFX bundled** (e.g. Azul Zulu FX). JavaFX modules come from the JDK —
 there are deliberately no `org.openjfx` dependencies, because druvu apps ship their own JDK via
 the install pipeline.
 

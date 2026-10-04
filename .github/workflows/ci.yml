@@ -3,7 +3,7 @@
 # the publish workflow only runs on release, so without this a red build stays invisible until
 # release time.
 #
-# JDK 25 with JavaFX bundled (Azul Zulu 'jdk+fx'): the toolkit resolves javafx.* from the JDK and has
+# JDK 27 with JavaFX bundled (Azul Zulu 'jdk+fx'): the toolkit resolves javafx.* from the JDK and has
 # no org.openjfx dependencies. The build runs under xvfb because the tests start the real JavaFX
 # toolkit (Platform.startup) and need a virtual display; xvfb is preinstalled on ubuntu-latest.
 name: CI
@@ -22,10 +22,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 25 (Zulu, JavaFX bundled)
+      - name: Set up JDK 27 (Zulu, JavaFX bundled)
         uses: actions/setup-java@v6
         with:
-          java-version: '25'
+          java-version: '27'
           distribution: 'zulu'
           java-package: 'jdk+fx'
           cache: 'maven'

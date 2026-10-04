@@ -2,7 +2,7 @@
 # GitHub release is created. Uses the automatic GITHUB_TOKEN (no extra secret needed). The example
 # module is deploy-skipped, so only com.druvu:druvu-lib-fx and the parent pom are published.
 #
-# JDK 25 with JavaFX bundled (Azul Zulu 'jdk+fx'): the library resolves javafx.* from the JDK and has
+# JDK 27 with JavaFX bundled (Azul Zulu 'jdk+fx'): the library resolves javafx.* from the JDK and has
 # no org.openjfx dependencies. The build runs under xvfb because the tests start the real JavaFX
 # toolkit (Platform.startup) and need a virtual display; xvfb is preinstalled on ubuntu-latest.
 
@@ -24,10 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 25 (Zulu, JavaFX bundled)
+      - name: Set up JDK 27 (Zulu, JavaFX bundled)
         uses: actions/setup-java@v6
         with:
-          java-version: '25'
+          java-version: '27'
           distribution: 'zulu'
           java-package: 'jdk+fx'
           server-id: github # matches distributionManagement/repository/id in pom.xml
