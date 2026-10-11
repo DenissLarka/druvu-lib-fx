@@ -833,6 +833,14 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
     return pane;
   }
 
+  /**
+   * Whether nothing is docked: no root at all (after {@link #apply} with a layout naming nobody)
+   * or a root split every node has left.
+   */
+  private boolean isEmpty() {
+    return root == null || ((SplitPane) root).getItems().isEmpty();
+  }
+
   private void clearTree() {
     if (root == null) {
       return;
@@ -937,13 +945,28 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
             .contains(dockIndicatorButton.screenToLocal(event.getScreenX(), event.getScreenY()))) {
           dockPosDrag = dockIndicatorButton.getDockPos();
           if (dockIndicatorButton.isDockRoot()) {
-            dockAreaDrag = root;
+            // An emptied workspace has no root to dock beside: the pane itself is the area, and
+            // the dropped node becomes the new root (dock() ignores the sibling when the pane is
+            // empty). Upstream handed out the null root here and the drag died in the geometry
+            // below - after that no drop could ever land (user-found 2026-10-10).
+            dockAreaDrag = isEmpty() ? this : root;
           }
           dockIndicatorButton.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
           break;
         } else {
           dockIndicatorButton.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), false);
         }
+      }
+      // An emptied workspace is one drop zone: anywhere on the pane takes the node as the new root,
+      // so a person who floated every panel can bring one back without aiming at an edge.
+      if (dockPosDrag == null && isEmpty()) {
+        dockPosDrag = DockPos.CENTER;
+        dockAreaDrag = this;
+      }
+      // A node-relative indicator can report a hit while no node is under the cursor (its popup
+      // keeps its last position when hidden); dock relative to the whole workspace rather than die.
+      if (dockPosDrag != null && dockAreaDrag == null) {
+        dockAreaDrag = isEmpty() ? this : root;
       }
 
       if (dockPosDrag != null) {
@@ -1008,8 +1031,14 @@ public class DockPane extends StackPane implements EventHandler<DockEvent> {
 
     if ((event.getEventType() == DockEvent.DOCK_EXIT && !this.receivedEnter)
         || event.getEventType() == DockEvent.DOCK_RELEASED) {
-      if (dockIndicatorPopup.isShowing()) {
+      // Each popup hides on its own showing. Upstream hid both only while the node-relative one
+      // was showing, and over an empty workspace that one never shows - so the overlay with the
+      // dashed area and the edge buttons stayed on screen after the drop, parked at its old place
+      // while the main window moved on (user-found 2026-10-10).
+      if (dockIndicatorOverlay.isShowing()) {
         dockIndicatorOverlay.hide();
+      }
+      if (dockIndicatorPopup.isShowing()) {
         dockIndicatorPopup.hide();
       }
     }
