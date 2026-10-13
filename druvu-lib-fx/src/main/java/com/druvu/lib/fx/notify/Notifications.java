@@ -7,13 +7,16 @@ import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.beans.InvalidationListener;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Popup;
 import javafx.stage.PopupWindow;
+import javafx.stage.Screen;
 import javafx.stage.Window;
 import javafx.util.Duration;
 
@@ -101,14 +104,18 @@ public final class Notifications {
         final Node toast = buildToast(message, level);
         toast.setOpacity(0);
         stack.getChildren().add(toast);
-        // The popup is placed from the content's bottom-right ANCHOR, so the content must have its
-        // real size before the popup first shows: without a CSS+layout pass the stack still
-        // measures ~0x0, the popup window materializes past the corner and visibly snaps into
-        // place once the first pulse resolves the true size. The stack sits in the popup's own
-        // scene from construction, so this pass works even while the popup is hidden.
-        stack.applyCss();
-        stack.layout();
+        // Show first, size second. A CSS pass on the popup while it is hidden resolves without the theme once the
+        // popup has been hidden before (the style manager forgets a hidden window's scene), and the failed lookups
+        // stick: the toast then paints with no background and invisible text - measured on JavaFX 27 as "every
+        // toast after the first one expired". Shown, the pass sees the theme. The popup is placed from the
+        // content's bottom-right ANCHOR, so the content is sized right after showing and re-anchored; the entering
+        // toast is at opacity 0 while that happens, so the window growing to its real size is never visible.
         position();
+        if (popup.isShowing()) {
+            stack.applyCss();
+            stack.layout();
+            position();
+        }
 
         // Fade the toast in rather than popping to full opacity in one frame - the entry
         // counterpart of the existing exit fade.
@@ -147,8 +154,12 @@ public final class Notifications {
         if (!owner.isShowing()) {
             return;
         }
-        final double x = owner.getX() + owner.getWidth() - MARGIN;
-        final double y = owner.getY() + owner.getHeight() - MARGIN;
+        final Point2D anchor = anchorWithin(
+                owner.getX() + owner.getWidth() - MARGIN,
+                owner.getY() + owner.getHeight() - MARGIN,
+                visualBoundsOf(owner));
+        final double x = anchor.getX();
+        final double y = anchor.getY();
         if (popup.isShowing()) {
             // Anchor setters, NOT Window.setX/setY: the plain setters place the window's TOP-LEFT
             // at the given point, bypassing the anchor translation - the popup then jumps
@@ -159,6 +170,41 @@ public final class Notifications {
         } else if (!stack.getChildren().isEmpty()) {
             popup.show(owner, x, y);
         }
+    }
+
+    /**
+     * Keeps the toast's bottom-right anchor inside a screen's visual bounds (the area without taskbar or dock). A
+     * window that hangs below the taskbar - saved geometry from a larger screen, or simply dragged there - would
+     * otherwise put every toast behind the taskbar, where it is never seen (measured: a 975px-tall window at y=114 on a
+     * 1080px screen hid all of them). {@code null} bounds leave the anchor as wanted.
+     */
+    static Point2D anchorWithin(double wantedX, double wantedY, Rectangle2D visual) {
+        if (visual == null) {
+            return new Point2D(wantedX, wantedY);
+        }
+        final double x = Math.max(visual.getMinX() + MARGIN, Math.min(wantedX, visual.getMaxX() - MARGIN));
+        final double y = Math.max(visual.getMinY() + MARGIN, Math.min(wantedY, visual.getMaxY() - MARGIN));
+        return new Point2D(x, y);
+    }
+
+    /** The visual bounds of the screen holding the largest part of the window; null when no screen intersects it. */
+    private static Rectangle2D visualBoundsOf(Window window) {
+        final Rectangle2D frame = new Rectangle2D(window.getX(), window.getY(), window.getWidth(), window.getHeight());
+        Screen best = null;
+        double bestArea = 0;
+        for (Screen screen : Screen.getScreensForRectangle(frame)) {
+            final Rectangle2D bounds = screen.getBounds();
+            final double width =
+                    Math.min(frame.getMaxX(), bounds.getMaxX()) - Math.max(frame.getMinX(), bounds.getMinX());
+            final double height =
+                    Math.min(frame.getMaxY(), bounds.getMaxY()) - Math.max(frame.getMinY(), bounds.getMinY());
+            final double area = Math.max(0, width) * Math.max(0, height);
+            if (area > bestArea) {
+                bestArea = area;
+                best = screen;
+            }
+        }
+        return best == null ? null : best.getVisualBounds();
     }
 
     private static Node buildToast(String message, Level level) {
