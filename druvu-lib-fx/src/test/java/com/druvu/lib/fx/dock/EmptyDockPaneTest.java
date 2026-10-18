@@ -123,8 +123,8 @@ public class EmptyDockPaneTest {
      */
     private static void dragAndDrop(DockWorkspace workspace, DockNode node, double xShare, double yShare)
             throws InterruptedException {
-        final Point2D at = FxTestToolkit.call(() -> workspace.pane.localToScreen(
-                workspace.pane.getWidth() * xShare, workspace.pane.getHeight() * yShare));
+        final Point2D at = FxTestToolkit.call(() ->
+                workspace.pane.localToScreen(workspace.pane.getWidth() * xShare, workspace.pane.getHeight() * yShare));
         fire(workspace.pane, DockEvent.DOCK_ENTER, at, null);
         fire(workspace.pane, DockEvent.DOCK_OVER, at, null);
         fire(workspace.pane, DockEvent.DOCK_OVER, at, null);
@@ -133,7 +133,7 @@ public class EmptyDockPaneTest {
 
     private static void fire(DockPane pane, EventType<DockEvent> type, Point2D at, Node contents)
             throws InterruptedException {
-        FxTestToolkit.runOnFx(() -> Event.fireEvent(
-                pane, new DockEvent(null, null, type, 0, 0, at.getX(), at.getY(), null, contents)));
+        FxTestToolkit.runOnFx(() ->
+                Event.fireEvent(pane, new DockEvent(null, null, type, 0, 0, at.getX(), at.getY(), null, contents)));
     }
 }
