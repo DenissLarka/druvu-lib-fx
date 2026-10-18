@@ -11,6 +11,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javafx.application.Platform;
+import javafx.geometry.Rectangle2D;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -132,9 +134,12 @@ public class WindowGeometryTest {
         }
     }
 
-    /** A monitor unplugged since the save: its position lies on no screen, so it is not applied - the size still is. */
+    /**
+     * A monitor unplugged since the save: the saved position lies on no screen, so the window opens centred on the
+     * primary screen's usable area, at its saved size. The placement rules themselves are in WindowPlacementTest.
+     */
     @Test
-    public void positionOnNoScreenIsNotRestored() throws IOException, InterruptedException {
+    public void positionOnNoScreenOpensCentredOnThePrimary() throws IOException, InterruptedException {
         final Path file = Files.createTempFile("druvu-window", ".properties");
         Files.write(file, List.of("window.x=100000", "window.y=100000", "window.width=400", "window.height=300"));
         try {
@@ -143,10 +148,36 @@ public class WindowGeometryTest {
                 WindowGeometry.restore(stage, new Prefs(file), "window");
                 return new double[] {stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight()};
             });
-            assertThat(restored[0]).isNaN();
-            assertThat(restored[1]).isNaN();
-            assertThat(restored[2]).isEqualTo(400);
-            assertThat(restored[3]).isEqualTo(300);
+            final Rectangle2D primary =
+                    FxTestToolkit.call(() -> Screen.getPrimary().getVisualBounds());
+            assertThat(restored)
+                    .containsExactly(
+                            primary.getMinX() + (primary.getWidth() - 400) / 2,
+                            primary.getMinY() + (primary.getHeight() - 300) / 2,
+                            400,
+                            300);
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    /** Windows parks a minimized window far off screen; a quit while minimized must not save that spot. */
+    @Test
+    public void aMinimizedWindowKeepsItsLastBounds() throws IOException, InterruptedException {
+        final Path file = Files.createTempFile("druvu-window", ".properties");
+        Files.write(file, List.of("window.x=210", "window.y=140", "window.width=400", "window.height=300"));
+        try {
+            final Prefs prefs = new Prefs(file);
+            FxTestToolkit.runOnFx(() -> {
+                final Stage stage = new Stage();
+                stage.setIconified(true);
+                stage.setX(-32000);
+                stage.setY(-32000);
+                WindowGeometry.save(stage, prefs, "window");
+            });
+            final Prefs reread = new Prefs(file);
+            assertThat(reread.getDouble("window.x", -1)).isEqualTo(210);
+            assertThat(reread.getDouble("window.y", -1)).isEqualTo(140);
         } finally {
             Files.deleteIfExists(file);
         }

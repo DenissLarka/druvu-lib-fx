@@ -1,8 +1,10 @@
 package com.druvu.lib.fx.prefs;
 
 import com.druvu.lib.fx.util.Debounce;
+import java.util.List;
 import java.util.Objects;
 import javafx.beans.InvalidationListener;
+import javafx.geometry.Rectangle2D;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -19,8 +21,12 @@ import javafx.util.Duration;
  *
  * <p>The saved geometry is applied again each time the stage is about to show: a JavaFX
  * {@link javafx.scene.control.Dialog} centres its window before every show ({@code HeavyweightDialog.show} calls
- * {@code centerOnScreen}), which would otherwise discard the restored position (measured on JavaFX 25). A saved
- * position that lies on no screen - a monitor since unplugged - is not applied, so the window never opens out of reach.
+ * {@code centerOnScreen}), which would otherwise discard the restored position (measured on JavaFX 25).
+ *
+ * <p>A saved window never opens out of reach. Its saved bounds are checked against the screens there are now
+ * ({@link WindowPlacement}): when its title bar or its bottom edge would be out of sight - a monitor unplugged since,
+ * displays rearranged, a taskbar that grew - it moves onto a screen instead. A minimized window's bounds are not saved:
+ * Windows parks a minimized window far off screen, and a quit while minimized would otherwise store that spot.
  *
  * <p>Keys are written under a prefix (default {@code "window"}), so one {@code Prefs} can remember several windows by
  * giving each a distinct prefix.
@@ -73,25 +79,40 @@ public final class WindowGeometry {
         if (prefs.contains(prefix + ".width") && prefs.contains(prefix + ".height")) {
             final double width = prefs.getDouble(prefix + ".width", stage.getWidth());
             final double height = prefs.getDouble(prefix + ".height", stage.getHeight());
-            stage.setWidth(width);
-            stage.setHeight(height);
-            if (prefs.contains(prefix + ".x") && prefs.contains(prefix + ".y")) {
-                final double x = prefs.getDouble(prefix + ".x", 0);
-                final double y = prefs.getDouble(prefix + ".y", 0);
-                if (!Screen.getScreensForRectangle(x, y, width, height).isEmpty()) {
-                    stage.setX(x);
-                    stage.setY(y);
-                }
+            // A size that is not positive comes from a damaged or hand-edited file: ignored, the stage keeps its own.
+            if (width > 0 && height > 0) {
+                restoreBounds(stage, prefs, prefix, width, height);
             }
         }
         stage.setMaximized(prefs.getBoolean(prefix + ".maximized", false));
     }
 
+    private static void restoreBounds(Stage stage, Prefs prefs, String prefix, double width, double height) {
+        if (!prefs.contains(prefix + ".x") || !prefs.contains(prefix + ".y")) {
+            stage.setWidth(width);
+            stage.setHeight(height);
+            return;
+        }
+        final Rectangle2D saved =
+                new Rectangle2D(prefs.getDouble(prefix + ".x", 0), prefs.getDouble(prefix + ".y", 0), width, height);
+        final Rectangle2D placed = WindowPlacement.placement(
+                saved, usableAreas(), Screen.getPrimary().getVisualBounds());
+        stage.setX(placed.getMinX());
+        stage.setY(placed.getMinY());
+        stage.setWidth(placed.getWidth());
+        stage.setHeight(placed.getHeight());
+    }
+
+    /** Every screen's usable area: its bounds without the taskbar, the menu bar and the Dock. */
+    private static List<Rectangle2D> usableAreas() {
+        return Screen.getScreens().stream().map(Screen::getVisualBounds).toList();
+    }
+
     static void save(Stage stage, Prefs prefs, String prefix) {
         prefs.putBoolean(prefix + ".maximized", stage.isMaximized());
-        // When maximized or full-screen, the stage's x/y/width/height are the screen's bounds; keep
-        // the last windowed bounds so restoring un-maximized returns to a sensible window.
-        if (!stage.isMaximized() && !stage.isFullScreen()) {
+        // When maximized or full-screen, the stage's x/y/width/height are the screen's bounds, and when minimized
+        // Windows parks it far off screen; keep the last windowed bounds so a restore returns to a sensible window.
+        if (!stage.isMaximized() && !stage.isFullScreen() && !stage.isIconified()) {
             prefs.putDouble(prefix + ".x", stage.getX());
             prefs.putDouble(prefix + ".y", stage.getY());
             prefs.putDouble(prefix + ".width", stage.getWidth());
