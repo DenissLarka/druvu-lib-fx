@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- The child.*.inherit.append.path attributes stop Maven appending the module name to the inherited url and scm:
+     without them the published druvu-lib-fx pom pointed at .../druvu-lib-fx/druvu-lib-fx, a page that does not exist. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+		 child.project.url.inherit.append.path="false">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.druvu</groupId>
@@ -9,7 +12,8 @@
 	<packaging>pom</packaging>
 
 	<name>DRUVU.COM / LIB / FX</name>
-	<description>JavaFX application toolkit for druvu desktop apps: event bus, background execution, status bar, login, navigation, preferences, notifications</description>
+	<description>JavaFX application toolkit for druvu desktop apps: event bus, background execution, status bar, sign-in, preferences and window geometry, notifications, docking, themes, macOS desktop hooks</description>
+	<url>https://github.com/DenissLarka/druvu-lib-fx</url>
 
 	<modules>
 		<module>druvu-lib-fx</module>
@@ -78,7 +82,9 @@
 		</license>
 	</licenses>
 
-	<scm>
+	<scm child.scm.connection.inherit.append.path="false"
+		 child.scm.developerConnection.inherit.append.path="false"
+		 child.scm.url.inherit.append.path="false">
 		<connection>scm:git:https://github.com/DenissLarka/druvu-lib-fx.git</connection>
 		<developerConnection>scm:git:git@github.com:DenissLarka/druvu-lib-fx.git</developerConnection>
 		<url>https://github.com/DenissLarka/druvu-lib-fx</url>

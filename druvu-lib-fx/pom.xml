@@ -13,7 +13,7 @@
 	<packaging>jar</packaging>
 
 	<name>DRUVU.COM / LIB / FX / CORE</name>
-	<description>The toolkit: bus, exec, status, auth, nav, prefs, notify, util. A library, not a framework - nothing here requires implementing a toolkit interface to start an app.</description>
+	<description>The toolkit: bus, exec, status, auth, prefs, notify, dock, theme, os, util. A library, not a framework - nothing here requires implementing a toolkit interface to start an app.</description>
 
 	<dependencies>
 
