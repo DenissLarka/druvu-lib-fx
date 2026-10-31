@@ -7,8 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.application.Application;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Applies a {@link FxTheme} and remembers the choice.
@@ -36,7 +34,7 @@ public final class ThemeManager {
     /** The preferences key this manager reads and writes. */
     public static final String PREF_KEY = "ui.theme";
 
-    private static final Logger LOG = LoggerFactory.getLogger(ThemeManager.class);
+    private static final System.Logger LOG = System.getLogger(ThemeManager.class.getName());
 
     // The applied theme is JVM-wide state (setUserAgentStylesheet is static), so tracking whether one
     // has been applied is JVM-wide too. Toolkit widgets read it to warn about the one configuration
@@ -121,8 +119,10 @@ public final class ThemeManager {
      */
     static void warnIfNoThemeApplied() {
         if (!THEME_APPLIED.get() && WARNED.compareAndSet(false, true)) {
-            LOG.warn("A druvu-lib-fx widget was created before any theme was applied, so its colours will not resolve."
-                    + " Call ThemeManager.applyStored() (or apply(FxTheme)) during application start-up.");
+            LOG.log(
+                    System.Logger.Level.WARNING,
+                    "A druvu-lib-fx widget was created before any theme was applied, so its colours will not resolve."
+                            + " Call ThemeManager.applyStored() (or apply(FxTheme)) during application start-up.");
         }
     }
 

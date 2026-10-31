@@ -11,12 +11,13 @@
 		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
 	</Match>
 
-	<!-- ThrowingRunnable and Authenticator mirror java.util.concurrent.Callable: 'throws Exception'
+	<!-- ThrowingRunnable, ProgressRunnable and Authenticator mirror java.util.concurrent.Callable: 'throws Exception'
 	     IS the contract of a generic interface whose body is app-supplied (background work / an auth
 	     backend that may fail any which way). SpotBugs exempts Callable only because it is JDK code. -->
 	<Match>
 		<Or>
 			<Class name="com.druvu.lib.fx.exec.ThrowingRunnable"/>
+			<Class name="com.druvu.lib.fx.exec.ProgressRunnable"/>
 			<Class name="com.druvu.lib.fx.auth.Authenticator"/>
 		</Or>
 		<Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>

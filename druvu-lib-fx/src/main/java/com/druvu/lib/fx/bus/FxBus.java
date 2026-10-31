@@ -7,7 +7,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import javafx.application.Platform;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Typed publish/subscribe event bus with explicit threading semantics per subscription (see {@link Delivery}). Events
@@ -17,8 +16,8 @@ import lombok.extern.slf4j.Slf4j;
  * polymorphic: a subscriber to a supertype receives all subtype events. A handler that throws is logged and never
  * breaks the publisher or other subscribers.
  */
-@Slf4j
 public final class FxBus {
+    private static final System.Logger LOG = System.getLogger(FxBus.class.getName());
 
     private final List<Sub<?>> subs = new CopyOnWriteArrayList<>();
     private final ThreadFactory asyncThreads =
@@ -86,7 +85,10 @@ public final class FxBus {
             try {
                 handler.accept(event);
             } catch (RuntimeException ex) {
-                log.error("Subscriber for {} failed on event {}", type.getName(), event, ex);
+                LOG.log(
+                        System.Logger.Level.ERROR,
+                        "Subscriber for " + type.getName() + " failed on event " + event,
+                        ex);
             }
         }
 

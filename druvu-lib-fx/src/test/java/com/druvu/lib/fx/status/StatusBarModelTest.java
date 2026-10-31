@@ -53,6 +53,34 @@ public class StatusBarModelTest {
         assertThat(done.await(10, TimeUnit.SECONDS)).as("assertions ran").isTrue();
     }
 
+    /** The bar follows the reporting task and goes away when that task ends, whatever other tasks do. */
+    @Test
+    public void progressFollowsTheReportingTaskUntilItEnds() throws InterruptedException {
+        final FxBus bus = new FxBus();
+        final StatusBarModel model = new StatusBarModel(bus);
+        final CountDownLatch done = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            assertThat(model.progressingProperty().get()).isFalse();
+            bus.publish(new TaskEvent.Started(1, "download"));
+            bus.publish(new TaskEvent.Started(2, "sync"));
+            bus.publish(new TaskEvent.Progressed(1, "download", 0.4));
+            bus.publish(new TaskEvent.Finished(2, "sync", Duration.ofMillis(5)));
+            Platform.runLater(() -> {
+                assertThat(model.progressingProperty().get())
+                        .as("another task ending leaves the bar")
+                        .isTrue();
+                assertThat(model.progressProperty().get()).isEqualTo(0.4);
+                bus.publish(new TaskEvent.Finished(1, "download", Duration.ofMillis(5)));
+                Platform.runLater(() -> {
+                    assertThat(model.progressingProperty().get()).isFalse();
+                    model.close();
+                    done.countDown();
+                });
+            });
+        });
+        assertThat(done.await(10, TimeUnit.SECONDS)).as("assertions ran").isTrue();
+    }
+
     @Test
     public void tracksRunningCountBusyAndMessage() throws InterruptedException {
         final FxBus bus = new FxBus();

@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Background execution on virtual threads, with task lifecycle published as {@link TaskEvent}s on the bus - so status
@@ -23,8 +22,8 @@ import lombok.extern.slf4j.Slf4j;
  * treats it. Caught as {@code Exception} only, an Error escaped to the thread's uncaught handler and left the future
  * pending forever.
  */
-@Slf4j
 public final class FxExec implements AutoCloseable {
+    private static final System.Logger LOG = System.getLogger(FxExec.class.getName());
 
     private final ExecutorService executor = Executors.newThreadPerTaskExecutor(
             Thread.ofVirtual().name("druvu-fx-exec-", 0).factory());
@@ -50,7 +49,25 @@ public final class FxExec implements AutoCloseable {
     public <T> CompletableFuture<T> supply(String title, Callable<T> work) {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(work, "work");
+        return start(ids.incrementAndGet(), title, work);
+    }
+
+    /**
+     * Runs work that reports how far it is; each report is published as a {@link TaskEvent.Progressed}, so a status bar
+     * can show a progress bar for it. Same contract as {@link #supply(String, Callable)}.
+     */
+    public CompletableFuture<Void> run(String title, ProgressRunnable work) {
+        Objects.requireNonNull(title, "title");
+        Objects.requireNonNull(work, "work");
         final long id = ids.incrementAndGet();
+        final TaskProgress progress = fraction -> events.accept(new TaskEvent.Progressed(id, title, fraction));
+        return start(id, title, () -> {
+            work.run(progress);
+            return null;
+        });
+    }
+
+    private <T> CompletableFuture<T> start(long id, String title, Callable<T> work) {
         final CompletableFuture<T> future = new CompletableFuture<>();
         executor.execute(() -> {
             final long startNanos = System.nanoTime();
@@ -60,7 +77,7 @@ public final class FxExec implements AutoCloseable {
                 events.accept(new TaskEvent.Finished(id, title, elapsed(startNanos)));
                 future.complete(value);
             } catch (Exception | Error failure) {
-                log.error("Task '{}' failed", title, failure);
+                LOG.log(System.Logger.Level.ERROR, "Task '" + title + "' failed", failure);
                 events.accept(new TaskEvent.Failed(id, title, failure, elapsed(startNanos)));
                 future.completeExceptionally(failure);
             }

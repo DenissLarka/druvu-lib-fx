@@ -6,16 +6,26 @@
 	<parent>
 		<groupId>com.druvu</groupId>
 		<artifactId>druvu-lib-fx-parent</artifactId>
-		<version>2.0.1-SNAPSHOT</version>
+		<version>2.1.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>druvu-lib-fx</artifactId>
 	<packaging>jar</packaging>
 
 	<name>DRUVU.COM / LIB / FX / CORE</name>
-	<description>The toolkit: bus, exec, status, auth, prefs, notify, dock, theme, os, util. A library, not a framework - nothing here requires implementing a toolkit interface to start an app.</description>
+	<description>The toolkit: bus, exec, status, auth, prefs, notify, dock, theme, os, update, util. A library, not a framework - nothing here requires implementing a toolkit interface to start an app.</description>
 
 	<dependencies>
+
+		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+		<!-- UPDATER -->
+		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+		<!-- Compile scope and 'requires transitive' in module-info: com.druvu.lib.fx.update wraps it, and an app
+		     names the updater's release source in its own code. -->
+		<dependency>
+			<groupId>com.druvu</groupId>
+			<artifactId>druvu-lib-fx-updater</artifactId>
+		</dependency>
 
 		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 		<!-- THEME -->
@@ -25,24 +35,6 @@
 		<dependency>
 			<groupId>io.github.mkpaz</groupId>
 			<artifactId>atlantafx-base</artifactId>
-		</dependency>
-
-		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
-		<!-- LOG -->
-		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<scope>provided</scope>
-		</dependency>
-
-		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
-		<!-- LOMBOK -->
-		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<scope>provided</scope>
 		</dependency>
 
 		<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
@@ -58,6 +50,7 @@
 			<artifactId>assertj-core</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- TestNG needs slf4j-api on the class path to discover tests at all; the kit itself logs through System.Logger. -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>

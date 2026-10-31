@@ -6,6 +6,8 @@ import com.druvu.lib.fx.bus.Subscription;
 import com.druvu.lib.fx.exec.TaskEvent;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringProperty;
@@ -25,6 +27,11 @@ public final class StatusBarModel implements AutoCloseable {
     private final ReadOnlyIntegerWrapper runningTasks = new ReadOnlyIntegerWrapper(this, "runningTasks", 0);
     private final ReadOnlyBooleanWrapper busy = new ReadOnlyBooleanWrapper(this, "busy", false);
     private final ReadOnlyStringWrapper message = new ReadOnlyStringWrapper(this, "message", "");
+    private final ReadOnlyBooleanWrapper progressing = new ReadOnlyBooleanWrapper(this, "progressing", false);
+    private final ReadOnlyDoubleWrapper progress = new ReadOnlyDoubleWrapper(this, "progress", -1);
+    /** The task whose progress is shown; the bar goes once it ends. */
+    private long progressingTask = -1;
+
     private final Subscription subscription;
 
     /**
@@ -42,12 +49,19 @@ public final class StatusBarModel implements AutoCloseable {
                 runningTasks.set(runningTasks.get() + 1);
                 message.set("running: " + s.title());
             }
+            case TaskEvent.Progressed p -> {
+                progressingTask = p.id();
+                progress.set(p.fraction());
+                progressing.set(true);
+            }
             case TaskEvent.Finished f -> {
                 decrement();
+                endProgress(f.id());
                 message.set("done: " + f.title());
             }
             case TaskEvent.Failed x -> {
                 decrement();
+                endProgress(x.id());
                 message.set("failed: " + x.title());
             }
         }
@@ -80,6 +94,30 @@ public final class StatusBarModel implements AutoCloseable {
     /** @return one-line description of the most recent task transition. */
     public ReadOnlyStringProperty messageProperty() {
         return message.getReadOnlyProperty();
+    }
+
+    /**
+     * @return {@code true} while a task reports its progress, from its first report until it ends; bind a progress
+     *     bar's visibility to it
+     */
+    public ReadOnlyBooleanProperty progressingProperty() {
+        return progressing.getReadOnlyProperty();
+    }
+
+    /**
+     * @return the progress of the task that reports it, from 0 to 1, or {@code -1} while that task cannot tell -
+     *     exactly what a {@code ProgressBar} shows as indeterminate; bind the bar's progress to it
+     */
+    public ReadOnlyDoubleProperty progressProperty() {
+        return progress.getReadOnlyProperty();
+    }
+
+    private void endProgress(long taskId) {
+        if (taskId == progressingTask) {
+            progressingTask = -1;
+            progressing.set(false);
+            progress.set(-1);
+        }
     }
 
     /** Detaches from the bus. Idempotent. */

@@ -8,8 +8,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Wires an app into the desktop environment's <em>application</em> events - on macOS, the bold app-name menu (About,
@@ -134,7 +132,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class DesktopHooks {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DesktopHooks.class);
+    private static final System.Logger LOG = System.getLogger(DesktopHooks.class.getName());
 
     private static final String JAVA_DESKTOP = "java.desktop";
 
@@ -225,11 +223,11 @@ public final class DesktopHooks {
         final boolean readable =
                 desktop.isPresent() && DesktopHooks.class.getModule().canRead(desktop.get());
         if (!readable && WARNED.compareAndSet(false, true)) {
-            LOG.warn(
-                    "Desktop hooks unavailable: module {} is not readable from {}. Add 'requires java.desktop'"
-                            + " to your module-info to enable the application menu and open-file events.",
-                    JAVA_DESKTOP,
-                    DesktopHooks.class.getModule().getName());
+            LOG.log(
+                    System.Logger.Level.WARNING,
+                    "Desktop hooks unavailable: module " + JAVA_DESKTOP + " is not readable from "
+                            + DesktopHooks.class.getModule().getName() + ". Add 'requires java.desktop'"
+                            + " to your module-info to enable the application menu and open-file events.");
         }
         return readable;
     }

@@ -12,8 +12,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javafx.util.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Keeps a {@link DockPane}'s workspace across runs in a {@link Prefs} store, the way
@@ -31,7 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class DockLayoutPersistence {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DockLayoutPersistence.class);
+    private static final System.Logger LOG = System.getLogger(DockLayoutPersistence.class.getName());
 
     private static final String DEFAULT_PREFIX = "dock";
 
@@ -78,7 +76,7 @@ public final class DockLayoutPersistence {
                 try {
                     pane.rememberPlacement(panel.getId(), Placement.parse(text));
                 } catch (IllegalArgumentException malformed) {
-                    LOG.warn("Ignoring {} = '{}': {}", key, text, malformed.getMessage());
+                    LOG.log(System.Logger.Level.WARNING, "Ignoring " + key + " = '" + text + "': " + malformed.getMessage());
                 }
             }
         }
@@ -88,7 +86,7 @@ public final class DockLayoutPersistence {
             try {
                 pane.apply(DockLayout.parse(text), panels);
             } catch (IllegalArgumentException malformed) {
-                LOG.warn("Ignoring {} = '{}': {}", key, text, malformed.getMessage());
+                LOG.log(System.Logger.Level.WARNING, "Ignoring " + key + " = '" + text + "': " + malformed.getMessage());
             }
         }
     }

@@ -84,6 +84,10 @@ public final class TasksPage {
     private static String describe(TaskEvent event) {
         return switch (event) {
             case TaskEvent.Started s -> "started   #%d %s".formatted(s.id(), s.title());
+            case TaskEvent.Progressed p ->
+                p.fraction() < 0
+                        ? "working   #%d %s".formatted(p.id(), p.title())
+                        : "progress  #%d %s %d%%".formatted(p.id(), p.title(), Math.round(p.fraction() * 100));
             case TaskEvent.Finished f ->
                 "finished  #%d %s in %d ms"
                         .formatted(f.id(), f.title(), f.elapsed().toMillis());

@@ -24,6 +24,8 @@ import com.druvu.lib.fx.prefs.WindowGeometry;
 import com.druvu.lib.fx.status.StatusBarModel;
 import com.druvu.lib.fx.theme.FxTheme;
 import com.druvu.lib.fx.theme.ThemeManager;
+import com.druvu.lib.fx.update.Updates;
+import com.druvu.lib.fx.updater.github.GitHubReleases;
 import com.druvu.lib.fx.util.FxThreads;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,6 +48,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
@@ -58,6 +61,7 @@ import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.shape.StrokeLineJoin;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 /**
  * "Market Watch" - the druvu-lib-fx showcase: a fake-data market console laid out as a docking workspace.
@@ -98,6 +102,7 @@ public final class MarketWatchApp extends Application {
     private DockPane dockPane;
     private StatusBarModel statusBarModel;
     private Notifications notifications;
+    private Updates updates;
 
     // Filled in by start(); the desktop hooks are registered before any instance exists (see main).
     private static final AtomicReference<MarketWatchApp> RUNNING = new AtomicReference<>();
@@ -164,7 +169,7 @@ public final class MarketWatchApp extends Application {
         // is the only place it is actually reachable. See DesktopHooks' known-limitation note.
         final MenuItem about = new MenuItem("About Market Watch");
         about.setOnAction(event -> showAbout());
-        final Menu help = new Menu("Help", null, about);
+        final Menu help = new Menu("Help", null, about, updates.checkForUpdatesMenuItem());
 
         final MenuBar menuBar = new MenuBar(file, help);
         menuBar.setUseSystemMenuBar(true);
@@ -206,6 +211,7 @@ public final class MarketWatchApp extends Application {
         // task's Started and still see its Finished. The kit floors the count at zero either way, but the honest
         // fix is to be listening before anything can fire - otherwise the strip just under-reports.
         statusBarModel = new StatusBarModel(bus);
+        updates = buildUpdates(scene.getWindow());
 
         dockPane = new DockPane();
         buildDockLayout();
@@ -216,6 +222,9 @@ public final class MarketWatchApp extends Application {
         shell.setTop(new VBox(buildMenuBar(), buildToolbar()));
         shell.setBottom(buildStatusStrip(user));
         scene.setRoot(shell);
+        // The automatic check: quiet unless an update is there to offer. A development run is not an installed copy,
+        // so nothing happens; --demo-updates runs the whole conversation on a pretend installation.
+        updates.checkAtStart();
 
         // Surface failed background tasks as error toasts (try the Tasks page's "Failing task").
         shellSubscriptions.add(bus.subscribe(TaskEvent.class, Delivery.FX, event -> {
@@ -408,9 +417,36 @@ public final class MarketWatchApp extends Application {
         final Label lastLabel = new Label();
         lastLabel.textProperty().bind(statusBarModel.messageProperty());
 
-        final HBox strip = new HBox(16, userLabel, new Separator(Orientation.VERTICAL), tasksLabel, lastLabel);
+        // A task that reports progress (the update download) shows here; the bar hides while none does.
+        final ProgressBar progressBar = new ProgressBar();
+        progressBar.progressProperty().bind(statusBarModel.progressProperty());
+        progressBar.visibleProperty().bind(statusBarModel.progressingProperty());
+        progressBar.managedProperty().bind(progressBar.visibleProperty());
+        final HBox strip =
+                new HBox(16, userLabel, new Separator(Orientation.VERTICAL), tasksLabel, lastLabel, progressBar);
         strip.setPadding(new Insets(4, 8, 4, 8));
         return strip;
+    }
+
+    /**
+     * Self-update, the kit way: one builder once the window shows. The real source is this repository's releases; the
+     * example is never an installed copy, so {@code updates.available()} is false unless {@code --demo-updates} swaps
+     * in the pretend installation and release of {@link DemoUpdates}.
+     */
+    private Updates buildUpdates(Window owner) {
+        final Updates.Builder builder = Updates.builder()
+                .appName("Market Watch")
+                .app(MarketWatchApp.class)
+                .source(GitHubReleases.of("DenissLarka", "druvu-lib-fx"))
+                .owner(owner)
+                .prefs(prefs)
+                .exec(exec);
+        if (DemoUpdates.requested(this)) {
+            builder.installation(DemoUpdates.installation())
+                    .source(DemoUpdates.source())
+                    .currentVersion(DemoUpdates.currentVersion());
+        }
+        return builder.build();
     }
 
     private Parent loadInstrumentsPage() {

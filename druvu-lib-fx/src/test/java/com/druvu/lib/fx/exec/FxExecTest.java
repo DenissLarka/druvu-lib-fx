@@ -100,6 +100,31 @@ public class FxExecTest {
         assertThat(((TaskEvent.Failed) events.get(1)).error()).isSameAs(missing);
     }
 
+    /**
+     * Work that reports through its {@link TaskProgress} publishes a Progressed per report, between Started and
+     * Finished.
+     */
+    @Test
+    public void testProgressReportsArePublishedForTheTask() throws Exception {
+        final FxBus bus = new FxBus();
+        final List<TaskEvent> events = new CopyOnWriteArrayList<>();
+        try (Subscription sub = bus.subscribe(TaskEvent.class, Delivery.CALLER, events::add);
+                FxExec exec = new FxExec(bus)) {
+            assertThat(sub).isNotNull();
+            exec.run("download", progress -> {
+                        progress.report(0.25);
+                        progress.report(1.0);
+                    })
+                    .get(10, TimeUnit.SECONDS);
+        }
+        assertThat(events).hasSize(4);
+        assertThat(events.get(1))
+                .isEqualTo(new TaskEvent.Progressed(events.get(0).id(), "download", 0.25));
+        assertThat(events.get(2))
+                .isEqualTo(new TaskEvent.Progressed(events.get(0).id(), "download", 1.0));
+        assertThat(events.get(3)).isInstanceOf(TaskEvent.Finished.class);
+    }
+
     @Test
     public void testContinuationHopsToFxThreadViaFxExecutor() throws Exception {
         try (FxExec exec = new FxExec()) {

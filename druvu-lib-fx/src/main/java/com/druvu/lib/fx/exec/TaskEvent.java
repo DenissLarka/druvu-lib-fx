@@ -9,7 +9,8 @@ import java.time.Duration;
  * <p>Threading contract: published from the task's worker thread - choose the subscription
  * {@link com.druvu.lib.fx.bus.Delivery} accordingly.
  */
-public sealed interface TaskEvent permits TaskEvent.Started, TaskEvent.Finished, TaskEvent.Failed {
+public sealed interface TaskEvent
+        permits TaskEvent.Started, TaskEvent.Progressed, TaskEvent.Finished, TaskEvent.Failed {
 
     /** @return identity of the task, unique per {@link FxExec} instance */
     long id();
@@ -18,6 +19,13 @@ public sealed interface TaskEvent permits TaskEvent.Started, TaskEvent.Finished,
     String title();
 
     record Started(long id, String title) implements TaskEvent {}
+
+    /**
+     * How far a task is, published for work that reports through a {@link TaskProgress}.
+     *
+     * @param fraction from 0 to 1, or {@code -1} when the total is unknown
+     */
+    record Progressed(long id, String title, double fraction) implements TaskEvent {}
 
     record Finished(long id, String title, Duration elapsed) implements TaskEvent {}
 
