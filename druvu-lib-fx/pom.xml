@@ -50,10 +50,11 @@
 			<artifactId>assertj-core</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- TestNG needs slf4j-api on the class path to discover tests at all; the kit itself logs through System.Logger. -->
+		<!-- TestNG needs SLF4J on the class path to discover tests at all; the JDK binding routes its lines into the one
+		     backend the module logs through (System.Logger). Test scope keeps the artifact free of it. -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
+			<artifactId>slf4j-jdk14</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

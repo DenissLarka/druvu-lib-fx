@@ -36,7 +36,10 @@ public class CommandsTest {
                 .contains("Start-Process ('shell:AppsFolder\\' + $package.PackageFamilyName + '!' + $application)");
     }
 
-    /** The sh scripts quote a Unix path; on Windows, Path would rewrite it with backslashes, so these two stay POSIX-only. */
+    /**
+     * The sh scripts quote a Unix path; on Windows, Path would rewrite it with backslashes, so these two stay
+     * POSIX-only.
+     */
     @Test
     public void theAppImageRelaunchRunsTheSamePathOnceThisProcessIsGone() {
         requirePosix();

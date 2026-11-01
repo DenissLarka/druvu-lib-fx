@@ -27,21 +27,8 @@
 			<groupId>com.druvu</groupId>
 			<artifactId>druvu-lib-fx</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-simple</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<!-- The kit and the updater log through System.Logger; this bridge routes those lines into SLF4J. -->
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-jdk-platform-logging</artifactId>
-			<scope>runtime</scope>
-		</dependency>
+		<!-- No logging dependency: the showcase, the kit and the updater log through System.Logger on the JDK backend,
+		     which AppLogs sets up in main. -->
 
 		<!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 		<!-- TEST -->
@@ -54,6 +41,12 @@
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- TestNG needs SLF4J on the class path to discover tests at all; the JDK binding keeps one backend. -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-jdk14</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

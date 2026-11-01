@@ -17,6 +17,7 @@ import com.druvu.lib.fx.example.pages.TasksPage;
 import com.druvu.lib.fx.exec.FxExec;
 import com.druvu.lib.fx.exec.TaskEvent;
 import com.druvu.lib.fx.notify.Notifications;
+import com.druvu.lib.fx.os.AppLogs;
 import com.druvu.lib.fx.os.DesktopHooks;
 import com.druvu.lib.fx.prefs.AppHome;
 import com.druvu.lib.fx.prefs.Prefs;
@@ -108,6 +109,9 @@ public final class MarketWatchApp extends Application {
     private static final AtomicReference<MarketWatchApp> RUNNING = new AtomicReference<>();
 
     public static void main(String[] args) {
+        // First, before anything logs: one line per record on the JDK backend; the output goes to
+        // ~/.druvu.com/market-watch/logs when this is an installed copy.
+        AppLogs.setUp(AppHome.of("market-watch"));
         // BEFORE launch() on purpose. On macOS the application menu goes to whoever builds it first: register here and
         // AWT installs About/Settings into it; register in start() and Glass has already built a bare Hide/Quit menu,
         // after which the entries never appear even though registration "succeeded". See DesktopHooks.

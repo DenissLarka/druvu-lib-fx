@@ -19,6 +19,10 @@ module com.druvu.lib.fx {
     // to a warn-once no-op when the app has not.
     requires static java.desktop;
 
+    // The JDK's own logging backend behind System.Logger: the kit requires it so that every runtime image built on the
+    // kit carries it, and AppLogs sets it up. No logging dependency ships with an app.
+    requires java.logging;
+
     exports com.druvu.lib.fx.auth;
     exports com.druvu.lib.fx.bus;
     exports com.druvu.lib.fx.dock;

@@ -30,7 +30,7 @@ is opt-in. Nothing here requires implementing a toolkit interface to start an ap
 | `prefs`  | Per-app home directory, properties-backed preferences, window geometry that reopens where it was — or on a screen, when the display it was on is gone (`AppHome`, `Prefs`, `WindowGeometry`) |
 | `notify` | Toast notifications — info/success/warning/error, auto-dismiss                                |
 | `theme`  | Theme menu over [AtlantaFX](https://github.com/mkpaz/atlantafx) (MIT) — nine themes, AtlantaFX's seven plus druvu light and dark, persisted; kit widgets follow the current one (`FxTheme`, `ThemeManager`, `KitStyles`) |
-| `os`     | macOS application menu (About / Settings / Quit) and Finder open-file events, on plain `java.awt.Desktop` — declines quietly elsewhere (`DesktopHooks`); the process's output into the app's log folder when installed (`AppLogs`) |
+| `os`     | macOS application menu (About / Settings / Quit) and Finder open-file events, on plain `java.awt.Desktop` — declines quietly elsewhere (`DesktopHooks`); logging set up in one call, the output in the app's log folder when installed (`AppLogs`) |
 | `update` | Self-update in one call — the offer with the release notes, the download in the status bar, the SHA-256 check, the install, the restart; the user's choices in the preferences (`Updates`) |
 | `util`   | FX threading helpers (`FxThreads`) and a debounce for save-on-change (`Debounce`) — every toolkit API states its threading contract in its terms |
 
@@ -182,22 +182,47 @@ source at a JSON file of the API's shape (`file:` works); `-Ddruvu.updater.off=t
 `DRUVU_UPDATER_OFF=true`) switches updates off for a run. The Market Watch showcase runs the whole conversation on a pretend installation:
 `mvn -pl druvu-lib-fx-example javafx:run -Djavafx.args=--demo-updates`.
 
-An installed app has no console; its output - the updater's lines included - goes to
-`~/.druvu.com/<app>/logs/` when `main` starts with:
+An installed app has no console; its output - the updater's lines included - goes to the app's log
+folder when `main` starts with `AppLogs.setUp` (Logging, below).
+
+The updater module (`com.druvu.lib.fx.updater`) has no JavaFX in it: `Updater`, `UpdateHost`,
+`UpdateSettings` and `Installation` are the contract, so a console or another toolkit can host the
+same conversation.
+
+## Logging
+
+One API, the JDK's: the kit and its updater log through `System.Logger`, and so can the app. The
+backend is the JDK's own, `java.util.logging`; the kit requires that module, so every runtime image
+built on the kit carries it, and no logging dependency ships. `main` sets it up in one call, before
+anything logs:
 
 ```java
 import com.druvu.lib.fx.os.AppLogs;
 import com.druvu.lib.fx.prefs.AppHome;
 
 public static void main(String[] args) {
-    AppLogs.redirectIfInstalled(AppHome.of("hello")); // a development run keeps its console
+    AppLogs.setUp(AppHome.of("hello"));
     launch(args);
 }
 ```
 
-The updater module (`com.druvu.lib.fx.updater`) has no JavaFX in it: `Updater`, `UpdateHost`,
-`UpdateSettings` and `Installation` are the contract, so a console or another toolkit can host the
-same conversation.
+One line per record, the stack trace under it when there is one:
+
+```text
+2026-10-31 14:02:03.123 INFO    com.druvu.lib.fx.update.Updates - Checking for updates
+```
+
+A development run keeps its console. An installed copy has none, so its output - the updater's lines
+included - goes to `~/.druvu.com/hello/logs/hello-<date>.log`. `-Ddruvu.log=debug` sets the level
+(any `System.Logger.Level` name; `INFO` by default), `-Ddruvu.log.file=true` sends a development run
+to the file too, and a run that configures the backend itself (`-Djava.util.logging.config.file=...`)
+keeps its configuration.
+
+A dependency that logs through another API brings its own bridge to the JDK backend, at runtime
+scope: `org.slf4j:slf4j-jdk14` for SLF4J, `org.apache.logging.log4j:log4j-to-jul` for the Log4j API.
+Without its bridge, a facade prints in its own format to the console, or complains that it found no
+provider. A dependency that brings an older `slf4j-api` wins over the bridge's otherwise, so exclude
+the API from that dependency; a managed version does not reach a packaging pom downstream.
 
 ## Using it
 
