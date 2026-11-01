@@ -20,9 +20,9 @@ import java.util.logging.Logger;
 
 /**
  * Sets up an application's logging in one call at the top of {@code main}: the JDK's own backend behind
- * {@link System.Logger}, one line per record, the level from {@code -Ddruvu.log}; and, for an installed copy - which
- * has no console - the process's output in a daily file under the app home's {@code logs} folder, the updater's lines
- * included.
+ * {@link System.Logger}, one line per record, the level from {@code -Ddruvu.log} on druvu's own loggers; and, for an
+ * installed copy - which has no console - the process's output in a daily file under the app home's {@code logs}
+ * folder, the updater's lines included.
  *
  * <p>The kit and its updater log through {@code System.Logger}, and so can the app: no logging dependency is needed.
  * The backend is {@code java.util.logging}, which the kit requires, so every runtime image built on the kit carries it.
@@ -38,7 +38,10 @@ import java.util.logging.Logger;
  */
 public final class AppLogs {
 
-    /** The level: a {@link System.Logger.Level} name, {@code INFO} when absent. */
+    /**
+     * The level: a {@link System.Logger.Level} name, {@code INFO} when absent. Below {@code INFO} it opens up druvu's
+     * own loggers ({@code com.druvu}) only; the others stay at {@code INFO}.
+     */
     public static final String LEVEL_PROPERTY = "druvu.log";
 
     /** {@code true} sends the output to the file in a development run too. */
@@ -46,6 +49,10 @@ public final class AppLogs {
 
     private static final String LOGS_FOLDER = "logs";
     private static final Level DEFAULT_LEVEL = Level.INFO;
+
+    // The level opens up druvu's own loggers only: at FINE the JDK's would list every trusted CA as TLS
+    // starts. Held in a field because the JDK keeps loggers weakly, and a collected logger forgets its level.
+    private static final Logger DRUVU = Logger.getLogger("com.druvu");
 
     private AppLogs() {}
 
@@ -87,7 +94,8 @@ public final class AppLogs {
 
     /**
      * One handler on the root logger at the given level, writing one line per record to the error stream as it is now:
-     * the file after {@link #redirect}, the console otherwise.
+     * the file after {@link #redirect}, the console otherwise. The root stays at {@code INFO} and druvu's own loggers
+     * take the level, so a {@code DEBUG} run shows the app's details without the JDK's.
      */
     static void configureBackend(Level level) {
         Logger root = Logger.getLogger("");
@@ -98,7 +106,8 @@ public final class AppLogs {
         console.setFormatter(new LogLine());
         console.setLevel(level);
         root.addHandler(console);
-        root.setLevel(level);
+        root.setLevel(Level.INFO);
+        DRUVU.setLevel(level);
     }
 
     /**

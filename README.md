@@ -214,9 +214,11 @@ One line per record, the stack trace under it when there is one:
 
 A development run keeps its console. An installed copy has none, so its output - the updater's lines
 included - goes to `~/.druvu.com/hello/logs/hello-<date>.log`. `-Ddruvu.log=debug` sets the level
-(any `System.Logger.Level` name; `INFO` by default), `-Ddruvu.log.file=true` sends a development run
-to the file too, and a run that configures the backend itself (`-Djava.util.logging.config.file=...`)
-keeps its configuration.
+(any `System.Logger.Level` name; `INFO` by default). Below `INFO` it opens up druvu's own loggers
+(`com.druvu.*`) only: the JDK's and the dependencies' stay at `INFO`, or a debug run would list every
+trusted certificate as TLS starts. `-Ddruvu.log.file=true` sends a development run to the file too,
+and a run that configures the backend itself (`-Djava.util.logging.config.file=...`) keeps its
+configuration.
 
 A dependency that logs through another API brings its own bridge to the JDK backend, at runtime
 scope: `org.slf4j:slf4j-jdk14` for SLF4J, `org.apache.logging.log4j:log4j-to-jul` for the Log4j API.

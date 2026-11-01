@@ -1,6 +1,7 @@
-# Builds the reactor and publishes druvu-lib-fx (framework + parent pom) to GitHub Packages when a
-# GitHub release is created. Uses the automatic GITHUB_TOKEN (no extra secret needed). The example
-# module is deploy-skipped, so only com.druvu:druvu-lib-fx and the parent pom are published.
+# Builds the reactor and publishes druvu-lib-fx (the kit, its updater, the parent pom) to GitHub Packages
+# when a GitHub release is created. Uses the automatic GITHUB_TOKEN (no extra secret needed). The example
+# module is deploy-skipped, so only com.druvu:druvu-lib-fx, druvu-lib-fx-updater and the parent pom are
+# published.
 #
 # JDK 27 with JavaFX bundled (Azul Zulu 'jdk+fx'): the library resolves javafx.* from the JDK and has
 # no org.openjfx dependencies. The build runs under xvfb because the tests start the real JavaFX

@@ -17,15 +17,18 @@ import org.testng.annotations.Test;
 
 /**
  * Covers AppLogs: the level from the System.Logger names, the daily file under the logs folder, and the backend writing
- * one line per record into it at the configured level. The process streams and the root logger are restored after each
- * test; the file's stream stays open until the shutdown hook closes it, like in an app.
+ * one line per record into it at the configured level. The process streams, the root logger and druvu's are restored
+ * after each test; the file's stream stays open until the shutdown hook closes it, like in an app.
  */
 public class AppLogsTest {
+
+    private static final Logger DRUVU = Logger.getLogger("com.druvu");
 
     private PrintStream out;
     private PrintStream err;
     private Handler[] rootHandlers;
     private Level rootLevel;
+    private Level druvuLevel;
 
     @BeforeMethod
     public void keepTheProcessState() {
@@ -34,6 +37,7 @@ public class AppLogsTest {
         Logger root = Logger.getLogger("");
         rootHandlers = root.getHandlers();
         rootLevel = root.getLevel();
+        druvuLevel = DRUVU.getLevel();
     }
 
     @AfterMethod
@@ -48,6 +52,7 @@ public class AppLogsTest {
             root.addHandler(handler);
         }
         root.setLevel(rootLevel);
+        DRUVU.setLevel(druvuLevel);
     }
 
     @Test
@@ -97,5 +102,22 @@ public class AppLogsTest {
 
         assertThat(Files.readString(file.orElseThrow(), StandardCharsets.UTF_8))
                 .contains(" DEBUG   com.druvu.hello - the details");
+    }
+
+    @Test
+    public void debugLevelOpensUpDruvuLoggersOnly() throws IOException {
+        Path folder = Files.createTempDirectory("app-logs");
+
+        Optional<Path> file = AppLogs.redirect(folder, "hello");
+        AppLogs.configureBackend(AppLogs.level("debug"));
+        System.getLogger("com.druvu.hello").log(System.Logger.Level.DEBUG, "the app's details");
+        System.Logger library = System.getLogger("org.example.library");
+        library.log(System.Logger.Level.DEBUG, "the library's details");
+        library.log(System.Logger.Level.INFO, "the library at INFO");
+
+        assertThat(Files.readString(file.orElseThrow(), StandardCharsets.UTF_8))
+                .contains("com.druvu.hello - the app's details")
+                .contains("org.example.library - the library at INFO")
+                .doesNotContain("the library's details");
     }
 }
