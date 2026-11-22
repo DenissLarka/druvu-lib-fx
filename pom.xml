@@ -29,14 +29,6 @@
 		     The enforcer's requireJavaVersion below refuses an older JDK. -->
 		<java.version>27</java.version>
 
-		<!-- Spotless (palantir) is OFF while the toolkit builds on JDK 27: palantir-java-format crashes there
-		     (NoSuchFieldError on JCCompilationUnit.endPositions, every release through 2.101.0 -
-		     https://github.com/palantir/palantir-java-format/issues/1785, fix in PR #1786). To re-enable:
-		     delete this property and bump palantir-java-format.version by hand to a release that supports
-		     JDK 27 (Renovate does not track it). Until then, format on JDK 25: Use-Jdk25.ps1, then
-		     mvn spotless:apply - the goal alone, which needs no compile. -->
-		<spotless.check.skip>true</spotless.check.skip>
-
 		<!-- JavaFX comes from the JDK: build with a JavaFX-bundled JDK (e.g. Azul Zulu FX).
 		     There are deliberately NO org.openjfx dependencies - apps ship their JDK via the
 		     druvu install pipeline, so the fx modules are version-locked to the JDK. -->
@@ -61,8 +53,9 @@
 		<maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
 		<spotbugs-maven-plugin.version>4.10.5.0</spotbugs-maven-plugin.version>
 		<javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
-		<spotless-maven-plugin.version>3.11.0</spotless-maven-plugin.version>
-		<palantir-java-format.version>2.90.0</palantir-java-format.version>
+		<spotless-maven-plugin.version>3.12.0</spotless-maven-plugin.version>
+		<!-- the palantir-java-format fork that runs on JDK 27: https://github.com/openjavaformat/open-java-format -->
+		<open-java-format.version>21.0.2</open-java-format.version>
 		<asm.version>9.11.1</asm.version>
 	</properties>
 
@@ -334,7 +327,8 @@
 							<exclude>src/main/java/com/druvu/lib/fx/dock/**/*.java</exclude>
 						</excludes>
 						<palantirJavaFormat>
-							<version>${palantir-java-format.version}</version>
+							<groupArtifact>dev.openjavaformat:open-java-format</groupArtifact>
+							<version>${open-java-format.version}</version>
 							<style>PALANTIR</style>
 							<formatJavadoc>true</formatJavadoc>
 						</palantirJavaFormat>
